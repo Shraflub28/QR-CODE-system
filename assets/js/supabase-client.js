@@ -42,13 +42,13 @@ class SupabaseClient {
     }
 
     /**
-     * Get all tables for a specific language
+     * Get all tables
      */
-    async getTables(language = 'en') {
+    async getTables() {
         const { data, error } = await this.client
             .from('tables')
             .select('*')
-            .eq('language', language)
+            .eq('active', true)
             .order('table_number', { ascending: true });
         
         if (error) throw error;
@@ -70,19 +70,73 @@ class SupabaseClient {
     }
 
     /**
-     * Get menu items for a specific language
+     * Get menu items with category info
      */
-    async getMenuItems(language = 'en') {
+    async getMenuItems() {
         const { data, error } = await this.client
             .from('menu_items')
-            .select('*')
-            .eq('language', language)
+            .select('*, categories(slug, display_order)')
             .eq('available', true)
-            .order('category', { ascending: true })
-            .order('name', { ascending: true });
+            .order('category_id', { ascending: true });
         
         if (error) throw error;
         return data;
+    }
+
+    /**
+     * Get all categories
+     */
+    async getCategories() {
+        const { data, error } = await this.client
+            .from('categories')
+            .select('*')
+            .eq('active', true)
+            .order('display_order', { ascending: true });
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Create category
+     */
+    async createCategory(categoryData) {
+        const { data, error } = await this.client
+            .from('categories')
+            .insert([categoryData])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Update category
+     */
+    async updateCategory(categoryId, categoryData) {
+        const { data, error } = await this.client
+            .from('categories')
+            .update(categoryData)
+            .eq('id', categoryId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Delete category
+     */
+    async deleteCategory(categoryId) {
+        const { error } = await this.client
+            .from('categories')
+            .delete()
+            .eq('id', categoryId);
+        
+        if (error) throw error;
+        return true;
     }
 
     /**
@@ -105,10 +159,14 @@ class SupabaseClient {
     async getOrders(filters = {}) {
         let query = this.client
             .from('orders')
-            .select('*, tables(table_number, language)');
+            .select('*, tables(table_number)');
         
         if (filters.status) {
             query = query.eq('status', filters.status);
+        }
+        
+        if (filters.payment_status) {
+            query = query.eq('payment_status', filters.payment_status);
         }
         
         if (filters.tableId) {
@@ -136,6 +194,85 @@ class SupabaseClient {
         
         if (error) throw error;
         return data;
+    }
+
+    /**
+     * Update order payment status
+     */
+    async updatePaymentStatus(orderId, paymentStatus, paymentMethod = null) {
+        const updateData = { 
+            payment_status: paymentStatus, 
+            updated_at: new Date().toISOString() 
+        };
+        
+        if (paymentMethod) {
+            updateData.payment_method = paymentMethod;
+        }
+        
+        const { data, error } = await this.client
+            .from('orders')
+            .update(updateData)
+            .eq('id', orderId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Get all employees
+     */
+    async getEmployees() {
+        const { data, error } = await this.client
+            .from('employees')
+            .select('*')
+            .order('name', { ascending: true });
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Create employee
+     */
+    async createEmployee(employeeData) {
+        const { data, error } = await this.client
+            .from('employees')
+            .insert([employeeData])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Update employee
+     */
+    async updateEmployee(employeeId, employeeData) {
+        const { data, error } = await this.client
+            .from('employees')
+            .update(employeeData)
+            .eq('id', employeeId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Delete employee
+     */
+    async deleteEmployee(employeeId) {
+        const { error } = await this.client
+            .from('employees')
+            .delete()
+            .eq('id', employeeId);
+        
+        if (error) throw error;
+        return true;
     }
 
     /**

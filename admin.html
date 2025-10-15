@@ -31,6 +31,7 @@
             </div>
             <div class="admin-nav">
                 <button class="nav-tab active" data-tab="tables" id="tabTables">Tables</button>
+                <button class="nav-tab" data-tab="categories" id="tabCategories">Categories</button>
                 <button class="nav-tab" data-tab="menu" id="tabMenu">Menu Items</button>
                 <button class="nav-tab" data-tab="orders" id="tabOrders">Orders</button>
             </div>
@@ -45,8 +46,21 @@
             </div>
             <div class="table-container">
                 <table class="table" id="tablesTable">
-                    <thead><tr><th>Table #</th><th>Language</th><th>QR Code</th><th>Actions</th></tr></thead>
+                    <thead><tr><th>Table #</th><th>Status</th><th>QR Code</th><th>Actions</th></tr></thead>
                     <tbody id="tablesBody"><tr><td colspan="4"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="categoriesContent">
+            <div class="action-bar">
+                <h2>Categories</h2>
+                <button class="btn btn-primary" id="addCategoryBtn">+ Add Category</button>
+            </div>
+            <div class="table-container">
+                <table class="table" id="categoriesTable">
+                    <thead><tr><th>Slug</th><th>Display Order</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="categoriesBody"><tr><td colspan="4"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -58,8 +72,8 @@
             </div>
             <div class="table-container">
                 <table class="table" id="menuTable">
-                    <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Language</th><th>Available</th><th>Actions</th></tr></thead>
-                    <tbody id="menuBody"><tr><td colspan="6"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
+                    <thead><tr><th>Name</th><th>Category</th><th>Price</th><th>Available</th><th>Actions</th></tr></thead>
+                    <tbody id="menuBody"><tr><td colspan="5"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -80,7 +94,6 @@
             <div class="modal-header"><h3 id="tableModalTitle">Add Table</h3><button class="btn btn-sm" id="closeTableModal">×</button></div>
             <div class="modal-body">
                 <div class="form-group"><label class="form-label">Table Number</label><input type="number" class="form-input" id="tableNumber" required></div>
-                <div class="form-group"><label class="form-label">Language</label><select class="form-select" id="tableLanguage"><option value="en">English</option><option value="fr">French</option><option value="ar">Arabic</option></select></div>
                 <div id="qrCodePreview"></div>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" id="cancelTable">Cancel</button><button class="btn btn-primary" id="saveTable">Save</button></div>
@@ -95,10 +108,21 @@
                 <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="itemDescription"></textarea></div>
                 <div class="form-group"><label class="form-label">Price</label><input type="number" class="form-input" id="itemPrice" step="0.01" required></div>
                 <div class="form-group"><label class="form-label">Category</label><select class="form-select" id="itemCategory"><option value="appetizers">Appetizers</option><option value="mains">Main Courses</option><option value="desserts">Desserts</option><option value="drinks">Drinks</option></select></div>
-                <div class="form-group"><label class="form-label">Language</label><select class="form-select" id="itemLanguage"><option value="en">English</option><option value="fr">French</option><option value="ar">Arabic</option></select></div>
                 <div class="form-group"><label style="display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" class="form-checkbox" id="itemAvailable" checked> Available</label></div>
             </div>
             <div class="modal-footer"><button class="btn btn-secondary" id="cancelMenu">Cancel</button><button class="btn btn-primary" id="saveMenu">Save</button></div>
+        </div>
+    </div>
+    
+    <div class="modal" id="categoryModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="categoryModalTitle">Add Category</h3><button class="btn btn-sm" id="closeCategoryModal">×</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">Slug (lowercase, no spaces)</label><input type="text" class="form-input" id="categorySlug" placeholder="e.g., appetizers" required></div>
+                <div class="form-group"><label class="form-label">Display Order</label><input type="number" class="form-input" id="categoryOrder" value="0" required></div>
+                <div class="form-group"><label style="display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" class="form-checkbox" id="categoryActive" checked> Active</label></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" id="cancelCategory">Cancel</button><button class="btn btn-primary" id="saveCategory">Save</button></div>
         </div>
     </div>
     
@@ -128,13 +152,14 @@
         
         async function loadTabData() {
             if (currentTab === 'tables') await loadTables();
+            else if (currentTab === 'categories') await loadCategories();
             else if (currentTab === 'menu') await loadMenu();
             else if (currentTab === 'orders') await loadOrders();
         }
         
         async function loadTables() {
             try {
-                const tables = await supabaseClient.getTables(currentLang);
+                const tables = await supabaseClient.getTables();
                 const tbody = document.getElementById('tablesBody');
                 if (tables.length === 0) {
                     tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No tables found</td></tr>';
@@ -143,8 +168,8 @@
                 tbody.innerHTML = tables.map(t => `
                     <tr>
                         <td>${t.table_number}</td>
-                        <td>${t.language.toUpperCase()}</td>
-                        <td><a href="${generateQRCodeUrl(t.id, t.language)}" target="_blank">View QR</a></td>
+                        <td>${t.active ? '<span class="badge badge-success">Active</span>' : '<span class="badge badge-danger">Inactive</span>'}</td>
+                        <td><a href="${generateQRCodeUrl(t.id, currentLang)}" target="_blank">View QR</a></td>
                         <td><button class="btn btn-sm btn-danger" onclick="window.deleteTable('${t.id}')">Delete</button></td>
                     </tr>
                 `).join('');
@@ -153,22 +178,48 @@
             }
         }
         
+        async function loadCategories() {
+            try {
+                const categories = await supabaseClient.getCategories();
+                const tbody = document.getElementById('categoriesBody');
+                if (categories.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="4" style="text-align: center; padding: 2rem;">No categories found</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = categories.map(c => `
+                    <tr>
+                        <td>${c.slug}</td>
+                        <td>${c.display_order}</td>
+                        <td><span class="badge badge-${c.active ? 'success' : 'danger'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="window.editCategory('${c.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="window.deleteCategory('${c.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Load categories error:', error);
+            }
+        }
+        
         async function loadMenu() {
             try {
-                const items = await supabaseClient.getMenuItems(currentLang);
+                const items = await supabaseClient.getMenuItems();
                 const tbody = document.getElementById('menuBody');
                 if (items.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No items found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="5" style="text-align: center; padding: 2rem;">No items found</td></tr>';
                     return;
                 }
                 tbody.innerHTML = items.map(i => `
                     <tr>
                         <td>${i.name}</td>
-                        <td>${i.category}</td>
+                        <td>${i.categories?.slug || 'N/A'}</td>
                         <td>${formatCurrency(i.price)}</td>
-                        <td>${i.language.toUpperCase()}</td>
                         <td><span class="badge badge-${i.available ? 'success' : 'danger'}">${i.available ? 'Yes' : 'No'}</span></td>
-                        <td><button class="btn btn-sm btn-danger" onclick="window.deleteMenuItem('${i.id}')">Delete</button></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="window.editMenuItem('${i.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="window.deleteMenuItem('${i.id}')">Delete</button>
+                        </td>
                     </tr>
                 `).join('');
             } catch (error) {
@@ -210,12 +261,59 @@
             }
         };
         
+        window.editMenuItem = async function(id) {
+            try {
+                const items = await supabaseClient.getMenuItems();
+                const item = items.find(i => i.id === id);
+                if (!item) return;
+                
+                editingId = id;
+                document.getElementById('menuModalTitle').textContent = 'Edit Menu Item';
+                document.getElementById('itemName').value = item.name;
+                document.getElementById('itemDescription').value = item.description || '';
+                document.getElementById('itemPrice').value = item.price;
+                document.getElementById('itemCategory').value = item.categories?.slug || 'appetizers';
+                document.getElementById('itemAvailable').checked = item.available;
+                document.getElementById('menuModal').classList.add('show');
+            } catch (error) {
+                showError(null, 'Failed to load item');
+            }
+        };
+        
         window.deleteMenuItem = async function(id) {
             if (!confirm('Delete this item?')) return;
             try {
                 await supabaseClient.deleteMenuItem(id);
                 showSuccess('Item deleted');
                 await loadMenu();
+            } catch (error) {
+                showError(null, 'Failed to delete');
+            }
+        };
+        
+        window.editCategory = async function(id) {
+            try {
+                const categories = await supabaseClient.getCategories();
+                const category = categories.find(c => c.id === id);
+                if (!category) return;
+                
+                editingId = id;
+                document.getElementById('categoryModalTitle').textContent = 'Edit Category';
+                document.getElementById('categorySlug').value = category.slug;
+                document.getElementById('categoryOrder').value = category.display_order;
+                document.getElementById('categoryActive').checked = category.active;
+                document.getElementById('categoryModal').classList.add('show');
+            } catch (error) {
+                showError(null, 'Failed to load category');
+            }
+        };
+        
+        window.deleteCategory = async function(id) {
+            if (!confirm('Delete this category? Menu items using this category will have no category.')) return;
+            try {
+                await supabaseClient.deleteCategory(id);
+                showSuccess('Category deleted');
+                await loadCategories();
             } catch (error) {
                 showError(null, 'Failed to delete');
             }
@@ -240,7 +338,22 @@
             
             document.getElementById('addMenuBtn').addEventListener('click', () => {
                 editingId = null;
+                document.getElementById('menuModalTitle').textContent = 'Add Menu Item';
+                document.getElementById('itemName').value = '';
+                document.getElementById('itemDescription').value = '';
+                document.getElementById('itemPrice').value = '';
+                document.getElementById('itemCategory').value = 'appetizers';
+                document.getElementById('itemAvailable').checked = true;
                 document.getElementById('menuModal').classList.add('show');
+            });
+            
+            document.getElementById('addCategoryBtn').addEventListener('click', () => {
+                editingId = null;
+                document.getElementById('categoryModalTitle').textContent = 'Add Category';
+                document.getElementById('categorySlug').value = '';
+                document.getElementById('categoryOrder').value = '0';
+                document.getElementById('categoryActive').checked = true;
+                document.getElementById('categoryModal').classList.add('show');
             });
             
             document.getElementById('closeTableModal').addEventListener('click', () => {
@@ -251,6 +364,10 @@
                 document.getElementById('menuModal').classList.remove('show');
             });
             
+            document.getElementById('closeCategoryModal').addEventListener('click', () => {
+                document.getElementById('categoryModal').classList.remove('show');
+            });
+            
             document.getElementById('cancelTable').addEventListener('click', () => {
                 document.getElementById('tableModal').classList.remove('show');
             });
@@ -259,10 +376,13 @@
                 document.getElementById('menuModal').classList.remove('show');
             });
             
+            document.getElementById('cancelCategory').addEventListener('click', () => {
+                document.getElementById('categoryModal').classList.remove('show');
+            });
+            
             document.getElementById('saveTable').addEventListener('click', async () => {
                 const tableData = {
-                    table_number: parseInt(document.getElementById('tableNumber').value),
-                    language: document.getElementById('tableLanguage').value
+                    table_number: parseInt(document.getElementById('tableNumber').value)
                 };
                 try {
                     await supabaseClient.createTable(tableData);
@@ -275,21 +395,55 @@
             });
             
             document.getElementById('saveMenu').addEventListener('click', async () => {
+                // Get category ID from slug
+                const categories = await supabaseClient.getCategories();
+                const categorySlug = document.getElementById('itemCategory').value;
+                const category = categories.find(c => c.slug === categorySlug);
+                
                 const itemData = {
                     name: document.getElementById('itemName').value,
                     description: document.getElementById('itemDescription').value,
                     price: parseFloat(document.getElementById('itemPrice').value),
-                    category: document.getElementById('itemCategory').value,
-                    language: document.getElementById('itemLanguage').value,
+                    category_id: category?.id,
                     available: document.getElementById('itemAvailable').checked
                 };
+                
                 try {
-                    await supabaseClient.createMenuItem(itemData);
-                    showSuccess('Item created');
+                    if (editingId) {
+                        await supabaseClient.updateMenuItem(editingId, itemData);
+                        showSuccess('Item updated');
+                    } else {
+                        await supabaseClient.createMenuItem(itemData);
+                        showSuccess('Item created');
+                    }
                     document.getElementById('menuModal').classList.remove('show');
                     await loadMenu();
+                    editingId = null;
                 } catch (error) {
                     showError(null, 'Failed to save');
+                }
+            });
+            
+            document.getElementById('saveCategory').addEventListener('click', async () => {
+                const categoryData = {
+                    slug: document.getElementById('categorySlug').value.toLowerCase().replace(/\s+/g, '_'),
+                    display_order: parseInt(document.getElementById('categoryOrder').value),
+                    active: document.getElementById('categoryActive').checked
+                };
+                
+                try {
+                    if (editingId) {
+                        await supabaseClient.updateCategory(editingId, categoryData);
+                        showSuccess('Category updated');
+                    } else {
+                        await supabaseClient.createCategory(categoryData);
+                        showSuccess('Category created');
+                    }
+                    document.getElementById('categoryModal').classList.remove('show');
+                    await loadCategories();
+                    editingId = null;
+                } catch (error) {
+                    showError(null, 'Failed to save category');
                 }
             });
             
