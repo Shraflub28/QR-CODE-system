@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu - Order Now</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        .menu-header {
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 50;
+            box-shadow: var(--shadow);
+            padding: 1rem 0;
+            margin-bottom: 2rem;
+        }
+        
+        .table-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .category-filter {
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+            padding-bottom: 0.5rem;
+        }
+        
+        .category-btn {
+            padding: 0.5rem 1rem;
+            border: 2px solid var(--border-color);
+            background: white;
+            border-radius: 20px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+        
+        .category-btn:hover,
+        .category-btn.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .menu-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 100px;
+        }
+        
+        .menu-item {
+            background: white;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        
+        .menu-item:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-md);
+        }
+        
+        .menu-item-image {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+        }
+        
+        .menu-item-content {
+            padding: 1.25rem;
+        }
+        
+        .menu-item-name {
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        .menu-item-description {
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            margin-bottom: 1rem;
+        }
+        
+        .menu-item-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .menu-item-price {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--primary-color);
+        }
+        
+        .cart-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            width: 64px;
+            height: 64px;
+            background: var(--primary-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            z-index: 100;
+        }
+        
+        html[dir="rtl"] .cart-fab {
+            right: auto;
+            left: 2rem;
+        }
+        
+        .cart-fab:hover {
+            transform: scale(1.1);
+        }
+        
+        .cart-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: var(--danger-color);
+            color: white;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.75rem;
+            font-weight: 700;
+        }
+        
+        .cart-modal .modal-content {
+            max-width: 600px;
+        }
+        
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        
+        .cart-item:last-child {
+            border-bottom: none;
+        }
+        
+        .cart-item-info {
+            flex: 1;
+        }
+        
+        .cart-item-name {
+            font-weight: 600;
+            margin-bottom: 0.25rem;
+        }
+        
+        .cart-item-price {
+            color: var(--text-secondary);
+        }
+        
+        .cart-item-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .quantity-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--border-color);
+            background: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .quantity-btn:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+        
+        .cart-total {
+            padding: 1.5rem;
+            background: var(--bg-secondary);
+            border-top: 2px solid var(--border-color);
+        }
+        
+        .cart-total-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+        
+        .empty-cart {
+            text-align: center;
+            padding: 3rem 1rem;
+            color: var(--text-secondary);
+        }
+        
+        .empty-cart svg {
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <div class="menu-header">
+        <div class="container">
+            <div class="table-info">
+                <div>
+                    <h1 id="pageTitle">Menu</h1>
+                    <p id="tableInfo" class="text-secondary">Loading...</p>
+                </div>
+                <div class="language-selector">
+                    <button class="language-btn" data-lang="en">EN</button>
+                    <button class="language-btn" data-lang="fr">FR</button>
+                    <button class="language-btn" data-lang="ar">AR</button>
+                </div>
+            </div>
+            <div class="category-filter" id="categoryFilter">
+                <button class="category-btn active" data-category="all">All</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="menu-grid" id="menuGrid">
+            <div class="loading-spinner">
+                <div class="spinner"></div>
+                <p id="loadingText">Loading menu...</p>
+            </div>
+        </div>
+    </div>
+    
+    <div class="cart-fab" id="cartFab">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="9" cy="21" r="1"></circle>
+            <circle cx="20" cy="21" r="1"></circle>
+            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+        </svg>
+        <span class="cart-badge" id="cartBadge">0</span>
+    </div>
+    
+    <div class="modal cart-modal" id="cartModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="cartTitle">Cart</h3>
+                <button class="btn btn-sm" id="closeCart">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="18" y1="6" x2="6" y2="18"></line>
+                        <line x1="6" y1="6" x2="18" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-body" id="cartItems">
+                <!-- Cart items will be inserted here -->
+            </div>
+            <div class="cart-total">
+                <div class="cart-total-row">
+                    <span id="totalLabel">Total</span>
+                    <span id="totalAmount">0.00 DZD</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" id="closeCartBtn">Close</button>
+                <button class="btn btn-primary" id="checkoutBtn">Checkout</button>
+            </div>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { supabaseClient } from '/assets/js/supabase-client.js';
+        import { loadLanguage, getBrowserLanguage, setPageDirection, getUrlParameter, setUrlParameter, formatCurrency, showSuccess, showError, showInfo } from '/assets/js/utils.js';
+        
+        let currentLang = getUrlParameter('lang') || getBrowserLanguage();
+        let tableId = getUrlParameter('table');
+        let translations = {};
+        let menuItems = [];
+        let cart = [];
+        let currentCategory = 'all';
+        
+        async function init() {
+            try {
+                // Load translations
+                translations = await loadLanguage(currentLang);
+                setPageDirection(currentLang);
+                updateLanguageButtons();
+                updateUIText();
+                
+                // Initialize Supabase
+                await supabaseClient.init();
+                
+                // Load table info
+                if (tableId) {
+                    await loadTableInfo();
+                }
+                
+                // Load menu items
+                await loadMenu();
+                
+                // Setup event listeners
+                setupEventListeners();
+                
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError('#menuGrid', translations.errors?.loadFailed || 'Failed to load menu');
+            }
+        }
+        
+        async function loadTableInfo() {
+            try {
+                const table = await supabaseClient.getTable(tableId);
+                const tableLabel = translations.customer?.tableNumber || 'Table';
+                document.getElementById('tableInfo').textContent = `${tableLabel} ${table.table_number}`;
+            } catch (error) {
+                console.error('Failed to load table:', error);
+                document.getElementById('tableInfo').textContent = translations.errors?.tableNotFound || 'Table not found';
+            }
+        }
+        
+        async function loadMenu() {
+            try {
+                menuItems = await supabaseClient.getMenuItems(currentLang);
+                renderCategories();
+                renderMenu();
+            } catch (error) {
+                console.error('Failed to load menu:', error);
+                showError('#menuGrid', translations.errors?.loadFailed || 'Failed to load menu');
+            }
+        }
+        
+        function renderCategories() {
+            const categories = ['all', ...new Set(menuItems.map(item => item.category))];
+            const filterEl = document.getElementById('categoryFilter');
+            
+            filterEl.innerHTML = categories.map(cat => {
+                const label = cat === 'all' ? 'All' : (translations.customer?.categories?.[cat] || cat);
+                return `<button class="category-btn ${cat === currentCategory ? 'active' : ''}" data-category="${cat}">${label}</button>`;
+            }).join('');
+            
+            filterEl.querySelectorAll('.category-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentCategory = btn.dataset.category;
+                    filterEl.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    renderMenu();
+                });
+            });
+        }
+        
+        function renderMenu() {
+            const filtered = currentCategory === 'all' 
+                ? menuItems 
+                : menuItems.filter(item => item.category === currentCategory);
+            
+            const gridEl = document.getElementById('menuGrid');
+            
+            if (filtered.length === 0) {
+                gridEl.innerHTML = '<div class="empty-cart"><p>No items found</p></div>';
+                return;
+            }
+            
+            gridEl.innerHTML = filtered.map(item => `
+                <div class="menu-item">
+                    <div class="menu-item-image">🍽️</div>
+                    <div class="menu-item-content">
+                        <div class="menu-item-name">${item.name}</div>
+                        <div class="menu-item-description">${item.description || ''}</div>
+                        <div class="menu-item-footer">
+                            <div class="menu-item-price">${formatCurrency(item.price)}</div>
+                            <button class="btn btn-primary btn-sm" onclick="window.addToCart('${item.id}')">
+                                ${translations.customer?.addToCart || 'Add'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        window.addToCart = function(itemId) {
+            const item = menuItems.find(i => i.id === itemId);
+            if (!item) return;
+            
+            const existingItem = cart.find(i => i.id === itemId);
+            if (existingItem) {
+                existingItem.quantity++;
+            } else {
+                cart.push({ ...item, quantity: 1 });
+            }
+            
+            updateCart();
+            showSuccess(translations.customer?.addToCart || 'Added to cart');
+        };
+        
+        function updateCart() {
+            const badge = document.getElementById('cartBadge');
+            const totalItems = cart.reduce((sum, item) => sum + item.quantity, 0);
+            badge.textContent = totalItems;
+            badge.style.display = totalItems > 0 ? 'flex' : 'none';
+            
+            renderCart();
+        }
+        
+        function renderCart() {
+            const cartEl = document.getElementById('cartItems');
+            
+            if (cart.length === 0) {
+                cartEl.innerHTML = `
+                    <div class="empty-cart">
+                        <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="9" cy="21" r="1"></circle>
+                            <circle cx="20" cy="21" r="1"></circle>
+                            <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path>
+                        </svg>
+                        <p>${translations.customer?.emptyCart || 'Your cart is empty'}</p>
+                    </div>
+                `;
+                document.getElementById('checkoutBtn').disabled = true;
+            } else {
+                cartEl.innerHTML = cart.map(item => `
+                    <div class="cart-item">
+                        <div class="cart-item-info">
+                            <div class="cart-item-name">${item.name}</div>
+                            <div class="cart-item-price">${formatCurrency(item.price)}</div>
+                        </div>
+                        <div class="cart-item-controls">
+                            <button class="quantity-btn" onclick="window.decreaseQuantity('${item.id}')">−</button>
+                            <span>${item.quantity}</span>
+                            <button class="quantity-btn" onclick="window.increaseQuantity('${item.id}')">+</button>
+                        </div>
+                    </div>
+                `).join('');
+                document.getElementById('checkoutBtn').disabled = false;
+            }
+            
+            const total = cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            document.getElementById('totalAmount').textContent = formatCurrency(total);
+        }
+        
+        window.increaseQuantity = function(itemId) {
+            const item = cart.find(i => i.id === itemId);
+            if (item) {
+                item.quantity++;
+                updateCart();
+            }
+        };
+        
+        window.decreaseQuantity = function(itemId) {
+            const item = cart.find(i => i.id === itemId);
+            if (item) {
+                item.quantity--;
+                if (item.quantity <= 0) {
+                    cart = cart.filter(i => i.id !== itemId);
+                }
+                updateCart();
+            }
+        };
+        
+        async function checkout() {
+            if (!tableId) {
+                showError(null, translations.errors?.tableNotFound || 'Table not found');
+                return;
+            }
+            
+            if (cart.length === 0) return;
+            
+            try {
+                const orderData = {
+                    table_id: tableId,
+                    items: cart.map(item => ({
+                        menu_item_id: item.id,
+                        name: item.name,
+                        price: item.price,
+                        quantity: item.quantity
+                    })),
+                    total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+                
+                await supabaseClient.createOrder(orderData);
+                
+                showSuccess(translations.customer?.orderPlaced || 'Order placed successfully!');
+                cart = [];
+                updateCart();
+                document.getElementById('cartModal').classList.remove('show');
+                
+            } catch (error) {
+                console.error('Checkout error:', error);
+                showError(null, translations.errors?.saveFailed || 'Failed to place order');
+            }
+        }
+        
+        function setupEventListeners() {
+            document.getElementById('cartFab').addEventListener('click', () => {
+                document.getElementById('cartModal').classList.add('show');
+            });
+            
+            document.getElementById('closeCart').addEventListener('click', () => {
+                document.getElementById('cartModal').classList.remove('show');
+            });
+            
+            document.getElementById('closeCartBtn').addEventListener('click', () => {
+                document.getElementById('cartModal').classList.remove('show');
+            });
+            
+            document.getElementById('checkoutBtn').addEventListener('click', checkout);
+            
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    currentLang = btn.dataset.lang;
+                    setUrlParameter('lang', currentLang);
+                    location.reload();
+                });
+            });
+            
+            // Close modal on outside click
+            document.getElementById('cartModal').addEventListener('click', (e) => {
+                if (e.target.id === 'cartModal') {
+                    document.getElementById('cartModal').classList.remove('show');
+                }
+            });
+        }
+        
+        function updateLanguageButtons() {
+            document.querySelectorAll('.language-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.lang === currentLang);
+            });
+        }
+        
+        function updateUIText() {
+            document.getElementById('pageTitle').textContent = translations.customer?.title || 'Menu';
+            document.getElementById('cartTitle').textContent = translations.customer?.cart || 'Cart';
+            document.getElementById('totalLabel').textContent = translations.customer?.total || 'Total';
+            document.getElementById('loadingText').textContent = translations.common?.loading || 'Loading...';
+            document.getElementById('closeCartBtn').textContent = translations.common?.close || 'Close';
+            document.getElementById('checkoutBtn').textContent = translations.customer?.checkout || 'Checkout';
+            document.title = translations.customer?.title || 'Menu';
+        }
+        
+        init();
+    </script>
+</body>
+</html>

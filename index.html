@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restaurant QR Ordering System</title>
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <style>
+        .landing-hero {
+            text-align: center;
+            padding: 4rem 1rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: var(--border-radius-lg);
+            margin-bottom: 3rem;
+        }
+        
+        .landing-hero h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: white;
+        }
+        
+        .landing-hero p {
+            font-size: 1.25rem;
+            opacity: 0.9;
+        }
+        
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-bottom: 3rem;
+        }
+        
+        .feature-card {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow-md);
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            display: block;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-lg);
+        }
+        
+        .feature-icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+        }
+        
+        .feature-card h3 {
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+        
+        .feature-card p {
+            color: var(--text-secondary);
+            margin-bottom: 0;
+        }
+        
+        .language-section {
+            background: white;
+            padding: 2rem;
+            border-radius: var(--border-radius-lg);
+            box-shadow: var(--shadow);
+            text-align: center;
+        }
+        
+        .language-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 1rem;
+            margin-top: 1.5rem;
+        }
+        
+        .language-option {
+            padding: 1.5rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: white;
+        }
+        
+        .language-option:hover {
+            border-color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .language-option.active {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .language-flag {
+            font-size: 3rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .landing-hero h1 {
+                font-size: 2rem;
+            }
+            
+            .landing-hero p {
+                font-size: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="landing-hero">
+            <h1 id="heroTitle">Restaurant QR Ordering System</h1>
+            <p id="heroSubtitle">Modern ordering system for your restaurant</p>
+        </div>
+        
+        <div class="language-section mb-4">
+            <h2 id="languageTitle">Select Your Language</h2>
+            <div class="language-grid">
+                <div class="language-option" data-lang="en">
+                    <div class="language-flag">🇬🇧</div>
+                    <div><strong>English</strong></div>
+                </div>
+                <div class="language-option" data-lang="fr">
+                    <div class="language-flag">🇫🇷</div>
+                    <div><strong>Français</strong></div>
+                </div>
+                <div class="language-option" data-lang="ar">
+                    <div class="language-flag">🇲🇦</div>
+                    <div><strong>العربية</strong></div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="feature-grid">
+            <a href="#" class="feature-card" id="customerCard">
+                <div class="feature-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                        <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                    </svg>
+                </div>
+                <h3 id="customerTitle">Customer Ordering</h3>
+                <p id="customerDesc">Scan QR code and order from your table</p>
+            </a>
+            
+            <a href="#" class="feature-card" id="staffCard">
+                <div class="feature-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                        <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                    </svg>
+                </div>
+                <h3 id="staffTitle">Staff Dashboard</h3>
+                <p id="staffDesc">Manage orders and kitchen operations</p>
+            </a>
+            
+            <a href="#" class="feature-card" id="adminCard">
+                <div class="feature-icon">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="3"></circle>
+                        <path d="M12 1v6m0 6v6m-9-9h6m6 0h6"></path>
+                        <path d="M12 1v6m0 6v6"></path>
+                    </svg>
+                </div>
+                <h3 id="adminTitle">Admin Panel</h3>
+                <p id="adminDesc">Configure tables, menu, and settings</p>
+            </a>
+        </div>
+    </div>
+    
+    <script type="module">
+        import { loadLanguage, getBrowserLanguage, setPageDirection, setUrlParameter, getUrlParameter } from '/assets/js/utils.js';
+        
+        let currentLang = getUrlParameter('lang') || getBrowserLanguage();
+        let translations = {};
+        
+        async function init() {
+            try {
+                translations = await loadLanguage(currentLang);
+                updateUI();
+                setPageDirection(currentLang);
+                
+                // Set active language
+                document.querySelectorAll('.language-option').forEach(opt => {
+                    opt.classList.toggle('active', opt.dataset.lang === currentLang);
+                });
+                
+                // Add language change listeners
+                document.querySelectorAll('.language-option').forEach(option => {
+                    option.addEventListener('click', () => {
+                        currentLang = option.dataset.lang;
+                        setUrlParameter('lang', currentLang);
+                        init();
+                    });
+                });
+                
+                // Update card links
+                document.getElementById('customerCard').href = `/customer.html?lang=${currentLang}`;
+                document.getElementById('staffCard').href = `/staff.html?lang=${currentLang}`;
+                document.getElementById('adminCard').href = `/admin.html?lang=${currentLang}`;
+                
+            } catch (error) {
+                console.error('Failed to initialize:', error);
+            }
+        }
+        
+        function updateUI() {
+            const t = translations;
+            
+            // Hero section
+            document.getElementById('heroTitle').textContent = t.landing.title;
+            document.getElementById('heroSubtitle').textContent = t.landing.subtitle;
+            
+            // Language section
+            document.getElementById('languageTitle').textContent = t.landing.selectLanguage;
+            
+            // Feature cards
+            document.getElementById('customerTitle').textContent = t.landing.customer;
+            document.getElementById('customerDesc').textContent = 'Scan QR code and order from your table';
+            
+            document.getElementById('staffTitle').textContent = t.landing.staff;
+            document.getElementById('staffDesc').textContent = 'Manage orders and kitchen operations';
+            
+            document.getElementById('adminTitle').textContent = t.landing.admin;
+            document.getElementById('adminDesc').textContent = 'Configure tables, menu, and settings';
+            
+            document.title = t.landing.title;
+        }
+        
+        init();
+    </script>
+</body>
+</html>
