@@ -74,7 +74,9 @@
     "refresh": "Refresh",
     "markAsPreparing": "Mark as Preparing",
     "markAsReady": "Mark as Ready",
-    "markAsServed": "Mark as Served"
+    "markAsServed": "Mark as Served",
+    "newOrder": "New Order!",
+    "total": "Total"
   },
   "admin": {
     "title": "Admin Panel",

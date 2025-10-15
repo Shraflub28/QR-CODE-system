@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Staff Dashboard</title>
+    <title>Staff Dashboard - Restaurant</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="stylesheet" href="/assets/css/main.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
@@ -160,9 +161,114 @@
             margin-bottom: 1rem;
             opacity: 0.5;
         }
+        
+        /* Notification styles */
+        .notification {
+            position: fixed;
+            top: 2rem;
+            right: 2rem;
+            background: white;
+            border-left: 4px solid var(--success-color);
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--border-radius);
+            padding: 1rem 1.5rem;
+            min-width: 300px;
+            max-width: 400px;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        html[dir="rtl"] .notification {
+            right: auto;
+            left: 2rem;
+            border-left: none;
+            border-right: 4px solid var(--success-color);
+        }
+        
+        .notification.new-order {
+            border-left-color: #4CAF50;
+        }
+        
+        html[dir="rtl"] .notification.new-order {
+            border-right-color: #4CAF50;
+        }
+        
+        .notification-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .notification-title {
+            font-weight: 700;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .notification-icon {
+            font-size: 1.5rem;
+        }
+        
+        .notification-close {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: var(--text-secondary);
+            padding: 0;
+            line-height: 1;
+        }
+        
+        .notification-body {
+            color: var(--text-secondary);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideInRTL {
+            from {
+                transform: translateX(-400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        html[dir="rtl"] .notification {
+            animation: slideInRTL 0.3s ease;
+        }
+        
+        .order-card.new-order-highlight {
+            animation: highlightPulse 2s ease;
+            border: 2px solid #4CAF50;
+        }
+        
+        @keyframes highlightPulse {
+            0%, 100% { box-shadow: var(--shadow); }
+            50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.5); }
+        }
     </style>
 </head>
 <body>
+    <!-- Audio Enable Banner -->
+    <div id="audioEnableBanner" style="display: none; background: #ff9800; color: white; padding: 0.75rem; text-align: center; cursor: pointer; font-weight: 500;">
+        🔊 Click anywhere to enable notification sounds
+    </div>
+    
     <div class="dashboard-header">
         <div class="container">
             <div class="dashboard-title">
@@ -209,6 +315,10 @@
         let orders = [];
         let currentStatus = 'all';
         let realtimeChannel = null;
+        let pollingInterval = null;
+        let lastOrderIds = new Set(); // Track order IDs we've seen
+        let audioContext = null; // Audio context
+        let audioEnabled = false; // Track if audio is enabled
         
         async function init() {
             try {
@@ -224,11 +334,17 @@
                 // Load orders
                 await loadOrders();
                 
-                // Setup real-time subscription
+                // Setup real-time subscription (fallback to polling if it fails)
                 setupRealtimeSubscription();
+                
+                // Start polling for new orders every 2 seconds
+                startPolling();
                 
                 // Setup event listeners
                 setupEventListeners();
+                
+                // Show audio enable banner
+                showAudioBanner();
                 
             } catch (error) {
                 console.error('Initialization error:', error);
@@ -353,9 +469,196 @@
         function setupRealtimeSubscription() {
             realtimeChannel = supabaseClient.subscribeToOrders((payload) => {
                 console.log('Real-time update:', payload);
+                
+                // Supabase real-time payload structure
+                // payload = { eventType: 'INSERT'|'UPDATE'|'DELETE', new: {...}, old: {...} }
+                if (payload.eventType === 'INSERT' && payload.new) {
+                    showNewOrderNotification(payload.new);
+                    playNotificationSound();
+                }
+                
+                // Reload orders to show updates
                 loadOrders();
             });
+            
+            console.log('✅ Real-time subscription active');
         }
+        
+        function showNewOrderNotification(order) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = 'notification new-order';
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">
+                        <span class="notification-icon">🔔</span>
+                        <span>${translations.staff?.newOrder || 'New Order!'}</span>
+                    </div>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="notification-body">
+                    <strong>${translations.staff?.table || 'Table'} ${order.tables?.table_number || order.table_id}</strong><br>
+                    ${translations.staff?.total || 'Total'}: ${formatCurrency(order.total)}<br>
+                    <small>${formatTime(order.created_at)}</small>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 5000);
+        }
+        
+        function initAudioContext() {
+            if (!audioContext) {
+                try {
+                    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                    audioEnabled = true;
+                    console.log('🔊 Audio context created');
+                } catch (e) {
+                    console.log('Could not create audio context:', e);
+                }
+            }
+            return audioContext;
+        }
+        
+        // Show banner to enable audio
+        function showAudioBanner() {
+            const banner = document.getElementById('audioEnableBanner');
+            if (banner && !audioEnabled) {
+                banner.style.display = 'block';
+                banner.onclick = enableAudioOnClick;
+            }
+        }
+        
+        // Enable audio on user interaction
+        function enableAudioOnClick() {
+            if (!audioEnabled) {
+                const ctx = initAudioContext();
+                if (ctx) {
+                    ctx.resume().then(() => {
+                        audioEnabled = true;
+                        console.log('🔊 Audio enabled - ready for notifications');
+                        // Hide banner
+                        const banner = document.getElementById('audioEnableBanner');
+                        if (banner) banner.style.display = 'none';
+                    });
+                }
+            }
+        }
+        
+        // Enable audio on any click
+        document.addEventListener('click', enableAudioOnClick, { once: true });
+        
+        function playNotificationSound() {
+            console.log('🔔 Attempting to play sound...');
+            
+            // Method 1: Web Audio API
+            try {
+                const ctx = initAudioContext();
+                if (ctx && ctx.state === 'suspended') {
+                    ctx.resume();
+                }
+                
+                if (ctx) {
+                    const oscillator = ctx.createOscillator();
+                    const gainNode = ctx.createGain();
+                    
+                    oscillator.connect(gainNode);
+                    gainNode.connect(ctx.destination);
+                    
+                    oscillator.frequency.value = 800;
+                    oscillator.type = 'sine';
+                    
+                    gainNode.gain.setValueAtTime(0, ctx.currentTime);
+                    gainNode.gain.linearRampToValueAtTime(0.5, ctx.currentTime + 0.01);
+                    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                    
+                    oscillator.start(ctx.currentTime);
+                    oscillator.stop(ctx.currentTime + 0.3);
+                    
+                    console.log('✅ Sound played via Web Audio API');
+                    return;
+                }
+            } catch (e) {
+                console.log('Web Audio failed:', e);
+            }
+            
+            // Method 2: Simple Audio element
+            try {
+                // Create a simple beep using data URI
+                const snd = new Audio("data:audio/wav;base64,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qJrx4KOQjahZxWbcZgztj2c49nKmkId44S71j0c8eV9yDK6uPRzx5X18eDvjvQ6yKo9ZSS6l//8elePK/Lf//IInrOF/FvDoADYAGBMGb7FtErm5MXMlmPAJQVgWta7Zx2go+8xJ0UiCb8LHHdftWyLJE0QIAIsI+UbXu67dZMjmgDGCGl1H+vpF4NSDckSIkk7Vd+sxEhBQMRU8j/12UIRhzSaUdQ+rQU5kGeFxm+hb1oh6pWWmv3uvmReDl0UnvtapVaIzo1jZbf/pD6ElLqSX+rUmOQNpJFa/r+sa4e/pBlAABoAAAAA3CUgShLdGIxsY7AUABPRrgCABdDuQ5GC7DqPQCgbbJUAoRSUj+NIEig0YfyWUho1VBBBA//uQZB4ABZx5zfMakeAAAAmwAAAAF5F3P0w9GtAAACfAAAAAwLhMDmAYWMgVEG1U0FIGCBgXBXAtfMH10000EEEEEECUBYln03TTTdNBDZopopYvrTTdNa325mImNg3TTPV9q3pmY0xoO6bv3r00y+IDGid/9aaaZTGMuj9mpu9Mpio1dXrr5HERTZSmqU36A3CumzN/9Robv/Xx4v9ijkSRSNLQhAWumap82WRSBUqXStV/YcS+XVLnSS+WLDroqArFkMEsAS+eWmrUzrO0oEmE40RlMZ5+ODIkAyKAGUwZ3mVKmcamcJnMW26MRPgUw6j+LkhyHGVGYjSUUKNpuJUQoOIAyDvEyG8S5yfK6dhZc0Tx1KI/gviKL6qvvFs1+bWtaz58uUNnryq6kt5RzOCkPWlVqVX2a/EEBUdU1KrXLf40GoiiFXK///qpoiDXrOgqDR38JB0bw7SoL+ZB9o1RCkQjQ2CBYZKd/+VJxZRRZlqSkKiws0WFxUyCwsKiMy7hUVFhIaCrNQsKkTIsLivwKKigsj8XYlwt/WKi2N4d//uQRCSAAjURNIHpMZBGYiaQPSYyAAABLAAAAAAAACWAAAAApUF/Mg+0aohSIRobBAsMlO//Kk4soosy1JSFRYWaLC4qZBYWFRGZdwqKiwkNBVmoWFSJkWFxX4FFRQWR+LsS4W/rFRb/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////VEFHAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAU291bmRib3kuZGUAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMjAwNGh0dHA6Ly93d3cuc291bmRib3kuZGUAAAAAAAAAACU=");
+                snd.volume = 0.7;
+                snd.play()
+                    .then(() => console.log('✅ Sound played via Audio element'))
+                    .catch(e => console.log('Audio element failed:', e));
+            } catch (e) {
+                console.log('All sound methods failed:', e);
+            }
+        }
+        
+        function startPolling() {
+            console.log('🔄 Starting polling every 2 seconds...');
+            
+            // Clear any existing interval
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+            }
+            
+            // Poll every 2 seconds
+            pollingInterval = setInterval(async () => {
+                try {
+                    // Fetch latest orders
+                    const filters = currentStatus !== 'all' ? { status: currentStatus } : {};
+                    const latestOrders = await supabaseClient.getOrders(filters);
+                    
+                    // Check for new orders
+                    const newOrders = latestOrders.filter(order => !lastOrderIds.has(order.id));
+                    
+                    if (newOrders.length > 0) {
+                        console.log(`🆕 Found ${newOrders.length} new order(s)!`);
+                        
+                        // Show notification for each new order
+                        newOrders.forEach(order => {
+                            showNewOrderNotification(order);
+                        });
+                        
+                        // Play sound once
+                        playNotificationSound();
+                        
+                        // Update orders list
+                        orders = latestOrders;
+                        renderOrders();
+                    }
+                    
+                    // Update tracked order IDs
+                    lastOrderIds = new Set(latestOrders.map(o => o.id));
+                    
+                } catch (error) {
+                    console.error('Polling error:', error);
+                }
+            }, 2000); // Check every 2 seconds
+        }
+        
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+                console.log('⏸️ Polling stopped');
+            }
+        }
+        
+        // Stop polling when page is hidden (save resources)
+        document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+                stopPolling();
+            } else {
+                startPolling();
+            }
+        });
         
         function setupEventListeners() {
             // Status tabs

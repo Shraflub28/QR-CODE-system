@@ -74,7 +74,9 @@
     "refresh": "Actualiser",
     "markAsPreparing": "Marquer comme En Préparation",
     "markAsReady": "Marquer comme Prêt",
-    "markAsServed": "Marquer comme Servi"
+    "markAsServed": "Marquer comme Servi",
+    "newOrder": "Nouvelle Commande!",
+    "total": "Total"
   },
   "admin": {
     "title": "Panneau Admin",

@@ -279,14 +279,25 @@ class SupabaseClient {
      * Subscribe to real-time order updates
      */
     subscribeToOrders(callback) {
-        return this.client
-            .channel('orders')
+        const channel = this.client
+            .channel('orders-channel')
             .on('postgres_changes', { 
                 event: '*', 
                 schema: 'public', 
                 table: 'orders' 
-            }, callback)
-            .subscribe();
+            }, (payload) => {
+                // Transform payload to match expected format
+                callback({
+                    eventType: payload.eventType,
+                    new: payload.new,
+                    old: payload.old
+                });
+            })
+            .subscribe((status) => {
+                console.log('Subscription status:', status);
+            });
+        
+        return channel;
     }
 
     /**

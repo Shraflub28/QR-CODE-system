@@ -74,7 +74,9 @@
     "refresh": "تحديث",
     "markAsPreparing": "وضع علامة قيد التحضير",
     "markAsReady": "وضع علامة جاهز",
-    "markAsServed": "وضع علامة تم التقديم"
+    "markAsServed": "وضع علامة تم التقديم",
+    "newOrder": "طلب جديد!",
+    "total": "المجموع"
   },
   "admin": {
     "title": "لوحة الإدارة",
