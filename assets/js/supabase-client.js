@@ -3,7 +3,9 @@
  * Manages database connections and operations
  */
 
-import { config } from './config.js';
+// Supabase Configuration
+const SUPABASE_URL = 'https://bxlhpczyvfukteutuhwl.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJ4bGhwY3p5dmZ1a3RldXR1aHdsIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjA0NzgwMTMsImV4cCI6MjA3NjA1NDAxM30.UYcN4iy2NjmEYbIQnXqFJROe3ynnwTMa3mtJvuCuf18';
 
 class SupabaseClient {
     constructor() {
@@ -16,13 +18,9 @@ class SupabaseClient {
      */
     async init() {
         try {
-            // Load configuration
-            await config.load();
-            const { url, anonKey } = config.getSupabaseConfig();
-            
             // Initialize Supabase client using CDN
             const { createClient } = supabase;
-            this.client = createClient(url, anonKey);
+            this.client = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             
             this.initialized = true;
             console.log('✅ Supabase client initialized');
