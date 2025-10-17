@@ -10,6 +10,11 @@ A modern, multilingual restaurant ordering system with QR code integration. Buil
 - 📊 **Admin Dashboard**: Manage tables, menu items, and orders
 - 👨‍💼 **Staff Interface**: Kitchen and service staff order management
 - 🛒 **Customer Ordering**: QR code-based table ordering system
+- 👥 **Employee Management**: Add, edit, and manage restaurant staff with roles
+- 📈 **Analytics Dashboard**: Track daily revenue, orders, and employee work hours
+- ⏰ **Work History**: Monitor employee shifts and hours worked
+- 💰 **Business Insights**: View comprehensive performance metrics
+- 🤖 **AI Assistant**: Chat with an AI bot to get instant insights about your restaurant data
 
 ## Quick Start
 
@@ -24,7 +29,21 @@ SUPABASE_ANON_KEY=your-anon-key-here
 
 ### 2. Set Up Database
 
-Run the following SQL in your Supabase SQL Editor to create the required tables:
+Run the SQL migration files in your Supabase SQL Editor:
+
+**Core Database:**
+```bash
+# Run this first
+setup_v3.sql
+```
+
+**Employee & Analytics Features (Optional but Recommended):**
+```bash
+# Run this after setup_v3.sql
+setup_employee_shifts.sql
+```
+
+Or manually create the required tables:
 
 ```sql
 -- Create tables table
@@ -265,6 +284,31 @@ export function formatCurrency(amount, currency = 'USD') {
 
 All styles are in `/assets/css/main.css`. Modify CSS variables in `:root` for quick theme changes.
 
+## New Features Documentation
+
+### Employee Management & Analytics
+For detailed documentation on the new employee management and analytics features:
+
+- 📖 **[Full Documentation](EMPLOYEE_ANALYTICS_FEATURES.md)** - Complete feature guide
+- 🚀 **[Quick Setup Guide](SETUP_NEW_FEATURES.md)** - 5-minute setup
+- 📊 **[Features Summary](FEATURES_SUMMARY.md)** - Visual overview
+
+**Quick Access:**
+- Employee Management: `http://localhost:8000/admin.html` → Employees tab
+- Analytics Dashboard: `http://localhost:8000/admin.html` → Analytics tab
+- AI Assistant: `http://localhost:8000/admin.html` → AI Assistant tab
+
+### AI Assistant
+Ask natural language questions about your restaurant:
+
+- 🤖 **[AI Assistant Guide](AI_ASSISTANT_GUIDE.md)** - Complete usage guide
+
+**Example Questions:**
+- "How much revenue did I make in April?"
+- "Who is the most active employee?"
+- "What were my total orders last month?"
+- "Show me employee work hours this week"
+
 ## Troubleshooting
 
 ### "Failed to load configuration"
@@ -279,6 +323,11 @@ All styles are in `/assets/css/main.css`. Modify CSS variables in `:root` for qu
 ### Orders not updating in real-time
 - Check browser console for WebSocket errors
 - Verify Supabase real-time is enabled for the `orders` table
+
+### Analytics not showing data
+- Run `setup_employee_shifts.sql` migration
+- Ensure you have orders in the selected date range
+- Check that triggers are enabled in Supabase
 - Ensure network allows WebSocket connections
 
 ## License

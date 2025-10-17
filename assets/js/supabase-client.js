@@ -383,6 +383,157 @@ class SupabaseClient {
         if (error) throw error;
         return true;
     }
+
+    /**
+     * Get employee shifts with employee info
+     */
+    async getEmployeeShifts(filters = {}) {
+        let query = this.client
+            .from('employee_shifts')
+            .select('*, employees(name, email, role)');
+        
+        if (filters.employeeId) {
+            query = query.eq('employee_id', filters.employeeId);
+        }
+        
+        if (filters.startDate) {
+            query = query.gte('shift_date', filters.startDate);
+        }
+        
+        if (filters.endDate) {
+            query = query.lte('shift_date', filters.endDate);
+        }
+        
+        query = query.order('shift_date', { ascending: false });
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Create employee shift
+     */
+    async createEmployeeShift(shiftData) {
+        const { data, error } = await this.client
+            .from('employee_shifts')
+            .insert([shiftData])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Update employee shift
+     */
+    async updateEmployeeShift(shiftId, shiftData) {
+        const { data, error } = await this.client
+            .from('employee_shifts')
+            .update(shiftData)
+            .eq('id', shiftId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Delete employee shift
+     */
+    async deleteEmployeeShift(shiftId) {
+        const { error } = await this.client
+            .from('employee_shifts')
+            .delete()
+            .eq('id', shiftId);
+        
+        if (error) throw error;
+        return true;
+    }
+
+    /**
+     * Clock in employee (start shift)
+     */
+    async clockIn(employeeId) {
+        const shiftData = {
+            employee_id: employeeId,
+            shift_date: new Date().toISOString().split('T')[0],
+            start_time: new Date().toISOString()
+        };
+        
+        return await this.createEmployeeShift(shiftData);
+    }
+
+    /**
+     * Clock out employee (end shift)
+     */
+    async clockOut(shiftId) {
+        const shiftData = {
+            end_time: new Date().toISOString()
+        };
+        
+        return await this.updateEmployeeShift(shiftId, shiftData);
+    }
+
+    /**
+     * Get daily analytics
+     */
+    async getDailyAnalytics(filters = {}) {
+        let query = this.client
+            .from('daily_analytics')
+            .select('*');
+        
+        if (filters.startDate) {
+            query = query.gte('business_date', filters.startDate);
+        }
+        
+        if (filters.endDate) {
+            query = query.lte('business_date', filters.endDate);
+        }
+        
+        query = query.order('business_date', { ascending: false });
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Get analytics for a specific date with employee shifts
+     */
+    async getDateAnalytics(date) {
+        // Get daily analytics
+        const { data: analytics, error: analyticsError } = await this.client
+            .from('daily_analytics')
+            .select('*')
+            .eq('business_date', date)
+            .single();
+        
+        // Get employee shifts for that date
+        const { data: shifts, error: shiftsError } = await this.client
+            .from('employee_shifts')
+            .select('*, employees(name, email, role)')
+            .eq('shift_date', date)
+            .order('start_time', { ascending: true });
+        
+        // Get orders for that date
+        const { data: orders, error: ordersError } = await this.client
+            .from('orders')
+            .select('*')
+            .gte('created_at', `${date}T00:00:00`)
+            .lt('created_at', `${date}T23:59:59`)
+            .order('created_at', { ascending: true });
+        
+        return {
+            analytics: analytics || null,
+            shifts: shifts || [],
+            orders: orders || []
+        };
+    }
 }
 
 // Export singleton instance

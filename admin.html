@@ -35,6 +35,9 @@
                 <button class="nav-tab" data-tab="categories" id="tabCategories">Categories</button>
                 <button class="nav-tab" data-tab="menu" id="tabMenu">Menu Items</button>
                 <button class="nav-tab" data-tab="orders" id="tabOrders">Orders</button>
+                <button class="nav-tab" data-tab="employees" id="tabEmployees">Employees</button>
+                <button class="nav-tab" data-tab="analytics" id="tabAnalytics">Analytics</button>
+                <button class="nav-tab" data-tab="ai-assistant" id="tabAI">AI Assistant</button>
             </div>
         </div>
     </div>
@@ -88,6 +91,61 @@
                 </table>
             </div>
         </div>
+        
+        <div class="tab-content" id="employeesContent">
+            <div class="action-bar">
+                <h2>Employees</h2>
+                <button class="btn btn-primary" id="addEmployeeBtn">+ Add Employee</button>
+            </div>
+            <div class="table-container">
+                <table class="table" id="employeesTable">
+                    <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Phone</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="employeesBody"><tr><td colspan="6"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="analyticsContent">
+            <h2>Analytics & Work History</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin-bottom: 2rem;">
+                <div>
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-input" id="analyticsStartDate">
+                </div>
+                <div>
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-input" id="analyticsEndDate">
+                </div>
+            </div>
+            <button class="btn btn-primary" id="loadAnalyticsBtn" style="margin-bottom: 1.5rem;">Load Analytics</button>
+            
+            <div id="analyticsResults">
+                <div class="loading-spinner"><div class="spinner"></div></div>
+            </div>
+        </div>
+        
+        <div class="tab-content" id="ai-assistantContent">
+            <h2>🤖 AI Restaurant Assistant</h2>
+            <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Ask me anything about your restaurant's performance, employees, orders, or revenue!</p>
+            
+            <div id="chatContainer" style="background: white; border-radius: 8px; box-shadow: var(--shadow); padding: 1.5rem; margin-bottom: 1rem; height: 500px; overflow-y: auto; display: flex; flex-direction: column; gap: 1rem;">
+                <div class="chat-message assistant-message" style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px; max-width: 80%;">
+                    <strong>AI Assistant:</strong>
+                    <p style="margin: 0.5rem 0 0 0;">Hello! I'm your restaurant AI assistant. I can help you analyze your business data. Try asking me:</p>
+                    <ul style="margin: 0.5rem 0 0 1.5rem;">
+                        <li>"How much revenue did I make in April?"</li>
+                        <li>"Who is the most active employee?"</li>
+                        <li>"What were my total orders last month?"</li>
+                        <li>"Show me employee work hours this week"</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div style="display: flex; gap: 0.5rem;">
+                <input type="text" class="form-input" id="aiChatInput" placeholder="Ask me about your restaurant..." style="flex: 1;">
+                <button class="btn btn-primary" id="sendChatBtn">Send</button>
+            </div>
+        </div>
     </div>
     
     <div class="modal" id="tableModal">
@@ -127,6 +185,21 @@
         </div>
     </div>
     
+    <div class="modal" id="employeeModal">
+        <div class="modal-content">
+            <div class="modal-header"><h3 id="employeeModalTitle">Add Employee</h3><button class="btn btn-sm" id="closeEmployeeModal">×</button></div>
+            <div class="modal-body">
+                <div class="form-group"><label class="form-label">Name</label><input type="text" class="form-input" id="employeeName" required></div>
+                <div class="form-group"><label class="form-label">Email</label><input type="email" class="form-input" id="employeeEmail" required></div>
+                <div class="form-group"><label class="form-label">Phone</label><input type="tel" class="form-input" id="employeePhone"></div>
+                <div class="form-group"><label class="form-label">Role</label><input type="text" class="form-input" id="employeeRole" placeholder="e.g., Staff, Kitchen, Manager, Admin" required></div>
+                <div class="form-group"><label class="form-label">Password (leave empty to keep current)</label><input type="password" class="form-input" id="employeePassword"></div>
+                <div class="form-group"><label style="display: flex; align-items: center; gap: 0.5rem;"><input type="checkbox" class="form-checkbox" id="employeeActive" checked> Active</label></div>
+            </div>
+            <div class="modal-footer"><button class="btn btn-secondary" id="cancelEmployee">Cancel</button><button class="btn btn-primary" id="saveEmployee">Save</button></div>
+        </div>
+    </div>
+    
     <script type="module">
         import { supabaseClient } from '/assets/js/supabase-client.js';
         import { loadLanguage, getBrowserLanguage, setPageDirection, getUrlParameter, setUrlParameter, formatCurrency, formatDateTime, generateQRCodeUrl, showSuccess, showError } from '/assets/js/utils.js';
@@ -156,6 +229,9 @@
             else if (currentTab === 'categories') await loadCategories();
             else if (currentTab === 'menu') await loadMenu();
             else if (currentTab === 'orders') await loadOrders();
+            else if (currentTab === 'employees') await loadEmployees();
+            else if (currentTab === 'analytics') await initAnalytics();
+            else if (currentTab === 'ai-assistant') await initAIAssistant();
         }
         
         async function loadTables() {
@@ -320,6 +396,534 @@
             }
         };
         
+        async function loadEmployees() {
+            try {
+                const employees = await supabaseClient.getEmployees();
+                const tbody = document.getElementById('employeesBody');
+                if (employees.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No employees found</td></tr>';
+                    return;
+                }
+                tbody.innerHTML = employees.map(e => `
+                    <tr>
+                        <td>${e.name}</td>
+                        <td>${e.email}</td>
+                        <td><span class="badge badge-info">${e.role}</span></td>
+                        <td>${e.phone || 'N/A'}</td>
+                        <td><span class="badge badge-${e.active ? 'success' : 'danger'}">${e.active ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <button class="btn btn-sm btn-primary" onclick="window.editEmployee('${e.id}')">Edit</button>
+                            <button class="btn btn-sm btn-danger" onclick="window.deleteEmployee('${e.id}')">Delete</button>
+                        </td>
+                    </tr>
+                `).join('');
+            } catch (error) {
+                console.error('Load employees error:', error);
+            }
+        }
+        
+        window.editEmployee = async function(id) {
+            try {
+                const employees = await supabaseClient.getEmployees();
+                const employee = employees.find(e => e.id === id);
+                if (!employee) return;
+                
+                editingId = id;
+                document.getElementById('employeeModalTitle').textContent = 'Edit Employee';
+                document.getElementById('employeeName').value = employee.name;
+                document.getElementById('employeeEmail').value = employee.email;
+                document.getElementById('employeePhone').value = employee.phone || '';
+                document.getElementById('employeeRole').value = employee.role;
+                document.getElementById('employeePassword').value = '';
+                document.getElementById('employeeActive').checked = employee.active;
+                document.getElementById('employeeModal').classList.add('show');
+            } catch (error) {
+                showError(null, 'Failed to load employee');
+            }
+        };
+        
+        window.deleteEmployee = async function(id) {
+            if (!confirm('Delete this employee?')) return;
+            try {
+                await supabaseClient.deleteEmployee(id);
+                showSuccess('Employee deleted');
+                await loadEmployees();
+            } catch (error) {
+                showError(null, 'Failed to delete');
+            }
+        };
+        
+        async function initAnalytics() {
+            // Set default date range (last 7 days)
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setDate(startDate.getDate() - 7);
+            
+            document.getElementById('analyticsStartDate').value = startDate.toISOString().split('T')[0];
+            document.getElementById('analyticsEndDate').value = endDate.toISOString().split('T')[0];
+            
+            await loadAnalytics();
+        }
+        
+        // AI Assistant Configuration
+        const AI_API_URL = 'https://text.pollinations.ai/openai';
+        const AI_TOKEN = 'abcok6DiII4AOrN6';
+        
+        async function initAIAssistant() {
+            // Just initialize, chat container already has welcome message
+        }
+        
+        async function getRestaurantContext() {
+            try {
+                // Gather all restaurant data for AI context
+                const [orders, employees, analytics, shifts] = await Promise.all([
+                    supabaseClient.getOrders({}),
+                    supabaseClient.getEmployees(),
+                    supabaseClient.getDailyAnalytics({ 
+                        startDate: new Date(new Date().setMonth(new Date().getMonth() - 6)).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    }),
+                    supabaseClient.getEmployeeShifts({
+                        startDate: new Date(new Date().setMonth(new Date().getMonth() - 3)).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    })
+                ]);
+                
+                // Calculate key metrics
+                const totalRevenue = analytics.reduce((sum, a) => sum + parseFloat(a.total_revenue || 0), 0);
+                const totalOrders = orders.length;
+                
+                // Employee activity
+                const employeeActivity = {};
+                shifts.forEach(shift => {
+                    const empId = shift.employee_id;
+                    if (!employeeActivity[empId]) {
+                        employeeActivity[empId] = {
+                            name: shift.employees?.name || 'Unknown',
+                            totalHours: 0,
+                            shiftCount: 0
+                        };
+                    }
+                    employeeActivity[empId].totalHours += parseFloat(shift.hours_worked || 0);
+                    employeeActivity[empId].shiftCount += 1;
+                });
+                
+                // Monthly revenue breakdown
+                const monthlyRevenue = {};
+                analytics.forEach(a => {
+                    const date = new Date(a.business_date);
+                    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+                    if (!monthlyRevenue[monthKey]) {
+                        monthlyRevenue[monthKey] = 0;
+                    }
+                    monthlyRevenue[monthKey] += parseFloat(a.total_revenue || 0);
+                });
+                
+                return {
+                    totalRevenue,
+                    totalOrders,
+                    averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+                    employeeCount: employees.length,
+                    employees: employees.map(e => ({ name: e.name, role: e.role, active: e.active })),
+                    employeeActivity: Object.values(employeeActivity),
+                    monthlyRevenue,
+                    recentAnalytics: analytics.slice(0, 30),
+                    currentDate: new Date().toISOString().split('T')[0]
+                };
+            } catch (error) {
+                console.error('Error gathering context:', error);
+                return null;
+            }
+        }
+        
+        // Function to execute queries based on AI needs
+        async function executeQuery(queryType, params = {}) {
+            try {
+                switch(queryType) {
+                    case 'orders':
+                        return await supabaseClient.getOrders(params);
+                    case 'employees':
+                        return await supabaseClient.getEmployees();
+                    case 'analytics':
+                        return await supabaseClient.getDailyAnalytics(params);
+                    case 'shifts':
+                        return await supabaseClient.getEmployeeShifts(params);
+                    case 'menu':
+                        return await supabaseClient.getMenuItems();
+                    case 'tables':
+                        return await supabaseClient.getTables();
+                    default:
+                        return null;
+                }
+            } catch (error) {
+                console.error('Query error:', error);
+                return null;
+            }
+        }
+        
+        async function sendMessageToAI(userMessage) {
+            try {
+                console.log('🤖 AI Assistant: Processing question:', userMessage);
+                console.log('📊 Fetching real-time data from Supabase...');
+                
+                // Always fetch fresh data from Supabase
+                console.time('⏱️ Data fetch time');
+                const [orders, employees, analytics, shifts, menu, tables] = await Promise.all([
+                    supabaseClient.getOrders({}),
+                    supabaseClient.getEmployees(),
+                    supabaseClient.getDailyAnalytics({ 
+                        startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    }),
+                    supabaseClient.getEmployeeShifts({
+                        startDate: new Date(new Date().setFullYear(new Date().getFullYear() - 1)).toISOString().split('T')[0],
+                        endDate: new Date().toISOString().split('T')[0]
+                    }),
+                    supabaseClient.getMenuItems(),
+                    supabaseClient.getTables()
+                ]);
+                console.timeEnd('⏱️ Data fetch time');
+                
+                console.log('✅ Data fetched successfully:');
+                console.log('  📦 Orders:', orders.length, 'total');
+                console.log('  👥 Employees:', employees.length, 'total');
+                console.log('  📈 Analytics records:', analytics.length, 'days');
+                console.log('  ⏰ Shifts:', shifts.length, 'total');
+                console.log('  🍽️ Menu items:', menu.length, 'total');
+                console.log('  🪑 Tables:', tables.length, 'total');
+                
+                // Calculate useful metrics
+                const totalRevenue = analytics.reduce((sum, a) => sum + parseFloat(a.total_revenue || 0), 0);
+                const totalOrders = orders.length;
+                
+                console.log('💰 Calculated metrics:');
+                console.log('  Total Revenue:', `$${totalRevenue.toFixed(2)}`);
+                console.log('  Total Orders:', totalOrders);
+                console.log('  Avg Order Value:', `$${(totalOrders > 0 ? totalRevenue / totalOrders : 0).toFixed(2)}`);
+                
+                // Employee activity
+                const employeeActivity = {};
+                shifts.forEach(shift => {
+                    const empId = shift.employee_id;
+                    const empName = shift.employees?.name || 'Unknown';
+                    if (!employeeActivity[empId]) {
+                        employeeActivity[empId] = {
+                            name: empName,
+                            role: shift.employees?.role || 'Unknown',
+                            totalHours: 0,
+                            shiftCount: 0
+                        };
+                    }
+                    employeeActivity[empId].totalHours += parseFloat(shift.hours_worked || 0);
+                    employeeActivity[empId].shiftCount += 1;
+                });
+                
+                console.log('👥 Employee Activity:');
+                Object.values(employeeActivity).forEach(emp => {
+                    console.log(`  ${emp.name} (${emp.role}): ${emp.shiftCount} shifts, ${emp.totalHours.toFixed(1)}h`);
+                });
+                
+                // Monthly revenue
+                const monthlyRevenue = {};
+                analytics.forEach(a => {
+                    const date = new Date(a.business_date);
+                    const monthKey = date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+                    if (!monthlyRevenue[monthKey]) {
+                        monthlyRevenue[monthKey] = 0;
+                    }
+                    monthlyRevenue[monthKey] += parseFloat(a.total_revenue || 0);
+                });
+                
+                console.log('📅 Monthly Revenue:');
+                Object.entries(monthlyRevenue).forEach(([month, revenue]) => {
+                    console.log(`  ${month}: $${revenue.toFixed(2)}`);
+                });
+                
+                // Build employee list
+                const employeeList = employees.map(e => `- ${e.name} (${e.role}) - ${e.active ? 'Active' : 'Inactive'}`).join('\n');
+                const employeeActivityList = Object.values(employeeActivity).length > 0 
+                    ? Object.values(employeeActivity).map(emp => `- ${emp.name} (${emp.role}): ${emp.shiftCount} shifts, ${emp.totalHours.toFixed(1)} hours total`).join('\n')
+                    : 'No shift data available';
+                const monthlyRevenueList = Object.keys(monthlyRevenue).length > 0
+                    ? Object.entries(monthlyRevenue).map(([month, revenue]) => `- ${month}: ${revenue.toFixed(2)} MAD`).join('\n')
+                    : 'No revenue data available';
+                const analyticsData = analytics.length > 0
+                    ? analytics.slice(0, 30).map(a => `- ${a.business_date}: Revenue ${parseFloat(a.total_revenue || 0).toFixed(2)} MAD, Orders: ${a.total_orders || 0}`).join('\n')
+                    : 'No analytics data available';
+                
+                // Build comprehensive prompt with ALL data
+                const fullPrompt = `You are a helpful AI assistant for a restaurant management system in Morocco. You MUST answer the user's question using ONLY the REAL DATA provided below. DO NOT give generic responses.
+
+USER QUESTION: ${userMessage}
+
+IMPORTANT: The user is asking about THEIR restaurant data. Use the numbers and information below to answer.
+
+RESTAURANT DATA (Real-time from database):
+
+EMPLOYEES (${employees.length} total):
+${employeeList}
+
+EMPLOYEE ACTIVITY (Work Hours):
+${employeeActivityList}
+
+MONTHLY REVENUE:
+${monthlyRevenueList}
+
+SUMMARY STATISTICS:
+- Total Revenue (all time): ${totalRevenue.toFixed(2)} MAD
+- Total Orders: ${totalOrders}
+- Average Order Value: ${(totalOrders > 0 ? totalRevenue / totalOrders : 0).toFixed(2)} MAD
+- Active Employees: ${employees.filter(e => e.active).length}
+- Total Menu Items: ${menu.length}
+- Total Tables: ${tables.length}
+
+RECENT DAILY ANALYTICS (Last 30 days):
+${analyticsData}
+
+INSTRUCTIONS: 
+1. Answer the user's question DIRECTLY using the data above
+2. Include specific numbers from the data
+3. If they ask "how many employees", count from the EMPLOYEES list above
+4. DO NOT say "What's on your mind" or ask clarifying questions
+5. Give a direct, data-driven answer
+6. ALWAYS use "MAD" (Moroccan Dirham) for currency, NEVER use "$" or "dollars"
+7. This is a Moroccan restaurant, so use MAD for all prices and revenue
+
+Answer:`;
+
+                console.log('📝 Prompt created (length:', fullPrompt.length, 'chars)');
+                console.log('📤 FULL PROMPT BEING SENT:');
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log(fullPrompt);
+                console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                console.log('🔗 Sending request to AI API...');
+                
+                // Use proper OpenAI-compatible format
+                const payload = {
+                    model: "openai-large",
+                    messages: [
+                        {
+                            role: "user",
+                            content: fullPrompt
+                        }
+                    ],
+                    stream: false,
+                    referrer: "https://g4f.dev/",
+                    seed: "10352102"
+                };
+                
+                console.log('📦 Payload:', JSON.stringify(payload, null, 2));
+                
+                console.time('⏱️ AI response time');
+                const response = await fetch(`${AI_API_URL}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(payload)
+                });
+                console.timeEnd('⏱️ AI response time');
+                
+                if (!response.ok) {
+                    console.error('❌ API Error:', response.status, response.statusText);
+                    throw new Error(`AI API request failed: ${response.status}`);
+                }
+                
+                console.log('✅ AI API responded successfully');
+                const data = await response.text();
+                console.log('📥 Raw response length:', data.length, 'chars');
+                console.log('📥 Raw response:', data.substring(0, 200) + '...');
+                
+                // Parse JSON response and extract message content
+                try {
+                    const jsonData = JSON.parse(data);
+                    console.log('✅ Response is valid JSON');
+                    console.log('📊 JSON structure:', Object.keys(jsonData));
+                    
+                    if (jsonData.choices && jsonData.choices[0] && jsonData.choices[0].message) {
+                        const aiMessage = jsonData.choices[0].message.content;
+                        console.log('✅ Extracted AI message (preview):', aiMessage.substring(0, 100) + '...');
+                        console.log('💬 FULL AI RESPONSE:');
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        console.log(aiMessage);
+                        console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                        return aiMessage || "I couldn't generate a response. Please try again.";
+                    }
+                } catch (parseError) {
+                    console.log('⚠️ Response is not JSON, returning as text');
+                    console.log('💬 FULL TEXT RESPONSE:');
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                    console.log(data);
+                    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+                }
+                
+                return data || "I couldn't generate a response. Please try again.";
+                
+            } catch (error) {
+                console.error('AI Error:', error);
+                return "I'm having trouble connecting to the AI service. Please check your connection and try again.";
+            }
+        }
+        
+        function addChatMessage(message, isUser = false) {
+            const chatContainer = document.getElementById('chatContainer');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `chat-message ${isUser ? 'user-message' : 'assistant-message'}`;
+            messageDiv.style.cssText = `
+                background: ${isUser ? 'var(--primary-color)' : 'var(--bg-secondary)'};
+                color: ${isUser ? 'white' : 'var(--text-primary)'};
+                padding: 1rem;
+                border-radius: 8px;
+                max-width: 80%;
+                ${isUser ? 'margin-left: auto;' : ''}
+            `;
+            
+            messageDiv.innerHTML = `
+                <strong>${isUser ? 'You' : 'AI Assistant'}:</strong>
+                <p style="margin: 0.5rem 0 0 0; white-space: pre-wrap;">${message}</p>
+            `;
+            
+            chatContainer.appendChild(messageDiv);
+            chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+        
+        async function handleSendMessage() {
+            const input = document.getElementById('aiChatInput');
+            const message = input.value.trim();
+            
+            if (!message) return;
+            
+            // Add user message
+            addChatMessage(message, true);
+            input.value = '';
+            
+            // Add loading message
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'ai-loading';
+            loadingDiv.style.cssText = 'background: var(--bg-secondary); padding: 1rem; border-radius: 8px; max-width: 80%;';
+            loadingDiv.innerHTML = '<strong>AI Assistant:</strong><p style="margin: 0.5rem 0 0 0;">Thinking...</p>';
+            document.getElementById('chatContainer').appendChild(loadingDiv);
+            
+            // Get AI response
+            const response = await sendMessageToAI(message);
+            
+            // Remove loading
+            document.getElementById('ai-loading')?.remove();
+            
+            // Add AI response
+            addChatMessage(response, false);
+        }
+        
+        async function loadAnalytics() {
+            try {
+                const startDate = document.getElementById('analyticsStartDate').value;
+                const endDate = document.getElementById('analyticsEndDate').value;
+                
+                if (!startDate || !endDate) {
+                    showError(null, 'Please select date range');
+                    return;
+                }
+                
+                const resultsDiv = document.getElementById('analyticsResults');
+                resultsDiv.innerHTML = '<div class="loading-spinner"><div class="spinner"></div></div>';
+                
+                // Get analytics data
+                const analytics = await supabaseClient.getDailyAnalytics({ startDate, endDate });
+                const shifts = await supabaseClient.getEmployeeShifts({ startDate, endDate });
+                
+                // Calculate totals
+                const totalRevenue = analytics.reduce((sum, a) => sum + parseFloat(a.total_revenue || 0), 0);
+                const totalOrders = analytics.reduce((sum, a) => sum + parseInt(a.total_orders || 0), 0);
+                const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+                
+                // Build HTML
+                let html = `
+                    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 2rem;">
+                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
+                            <h3 style="margin: 0 0 0.5rem 0; color: var(--text-secondary); font-size: 0.875rem;">Total Revenue</h3>
+                            <p style="margin: 0; font-size: 2rem; font-weight: bold; color: var(--primary-color);">${formatCurrency(totalRevenue)}</p>
+                        </div>
+                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
+                            <h3 style="margin: 0 0 0.5rem 0; color: var(--text-secondary); font-size: 0.875rem;">Total Orders</h3>
+                            <p style="margin: 0; font-size: 2rem; font-weight: bold; color: var(--success-color);">${totalOrders}</p>
+                        </div>
+                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow);">
+                            <h3 style="margin: 0 0 0.5rem 0; color: var(--text-secondary); font-size: 0.875rem;">Avg Order Value</h3>
+                            <p style="margin: 0; font-size: 2rem; font-weight: bold; color: var(--info-color);">${formatCurrency(avgOrderValue)}</p>
+                        </div>
+                    </div>
+                    
+                    <h3 style="margin: 2rem 0 1rem 0;">Daily Breakdown</h3>
+                `;
+                
+                // Group shifts by date
+                const shiftsByDate = {};
+                shifts.forEach(shift => {
+                    if (!shiftsByDate[shift.shift_date]) {
+                        shiftsByDate[shift.shift_date] = [];
+                    }
+                    shiftsByDate[shift.shift_date].push(shift);
+                });
+                
+                // Create analytics by date
+                const analyticsByDate = {};
+                analytics.forEach(a => {
+                    analyticsByDate[a.business_date] = a;
+                });
+                
+                // Generate date range
+                const dates = [];
+                const current = new Date(startDate);
+                const end = new Date(endDate);
+                while (current <= end) {
+                    dates.push(current.toISOString().split('T')[0]);
+                    current.setDate(current.getDate() + 1);
+                }
+                
+                // Display each day
+                dates.reverse().forEach(date => {
+                    const dayAnalytics = analyticsByDate[date];
+                    const dayShifts = shiftsByDate[date] || [];
+                    
+                    html += `
+                        <div style="background: white; padding: 1.5rem; border-radius: 8px; box-shadow: var(--shadow); margin-bottom: 1rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h4 style="margin: 0;">${new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</h4>
+                                <div style="display: flex; gap: 1rem;">
+                                    <span style="font-weight: bold; color: var(--primary-color);">Revenue: ${formatCurrency(dayAnalytics?.total_revenue || 0)}</span>
+                                    <span style="font-weight: bold; color: var(--success-color);">Orders: ${dayAnalytics?.total_orders || 0}</span>
+                                </div>
+                            </div>
+                            
+                            <div>
+                                <h5 style="margin: 0.5rem 0; color: var(--text-secondary);">Employees Working:</h5>
+                                ${dayShifts.length > 0 ? `
+                                    <div style="display: grid; gap: 0.5rem;">
+                                        ${dayShifts.map(shift => {
+                                            const startTime = new Date(shift.start_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+                                            const endTime = shift.end_time ? new Date(shift.end_time).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) : 'Still working';
+                                            const hours = shift.hours_worked ? shift.hours_worked.toFixed(2) : 'N/A';
+                                            return `
+                                                <div style="padding: 0.75rem; background: var(--bg-secondary); border-radius: 4px; display: flex; justify-content: space-between;">
+                                                    <span><strong>${shift.employees?.name}</strong> (${shift.employees?.role})</span>
+                                                    <span>${startTime} - ${endTime} (${hours}h)</span>
+                                                </div>
+                                            `;
+                                        }).join('')}
+                                    </div>
+                                ` : '<p style="color: var(--text-secondary); margin: 0;">No employees worked this day</p>'}
+                            </div>
+                        </div>
+                    `;
+                });
+                
+                resultsDiv.innerHTML = html;
+            } catch (error) {
+                console.error('Load analytics error:', error);
+                document.getElementById('analyticsResults').innerHTML = '<p style="color: red;">Failed to load analytics</p>';
+            }
+        }
+        
         function setupEventListeners() {
             document.querySelectorAll('.nav-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
@@ -357,6 +961,28 @@
                 document.getElementById('categoryModal').classList.add('show');
             });
             
+            document.getElementById('addEmployeeBtn').addEventListener('click', () => {
+                editingId = null;
+                document.getElementById('employeeModalTitle').textContent = 'Add Employee';
+                document.getElementById('employeeName').value = '';
+                document.getElementById('employeeEmail').value = '';
+                document.getElementById('employeePhone').value = '';
+                document.getElementById('employeeRole').value = '';
+                document.getElementById('employeePassword').value = '';
+                document.getElementById('employeeActive').checked = true;
+                document.getElementById('employeeModal').classList.add('show');
+            });
+            
+            document.getElementById('loadAnalyticsBtn').addEventListener('click', loadAnalytics);
+            
+            // AI Assistant event listeners
+            document.getElementById('sendChatBtn').addEventListener('click', handleSendMessage);
+            document.getElementById('aiChatInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    handleSendMessage();
+                }
+            });
+            
             document.getElementById('closeTableModal').addEventListener('click', () => {
                 document.getElementById('tableModal').classList.remove('show');
             });
@@ -369,6 +995,10 @@
                 document.getElementById('categoryModal').classList.remove('show');
             });
             
+            document.getElementById('closeEmployeeModal').addEventListener('click', () => {
+                document.getElementById('employeeModal').classList.remove('show');
+            });
+            
             document.getElementById('cancelTable').addEventListener('click', () => {
                 document.getElementById('tableModal').classList.remove('show');
             });
@@ -379,6 +1009,10 @@
             
             document.getElementById('cancelCategory').addEventListener('click', () => {
                 document.getElementById('categoryModal').classList.remove('show');
+            });
+            
+            document.getElementById('cancelEmployee').addEventListener('click', () => {
+                document.getElementById('employeeModal').classList.remove('show');
             });
             
             document.getElementById('saveTable').addEventListener('click', async () => {
@@ -445,6 +1079,41 @@
                     editingId = null;
                 } catch (error) {
                     showError(null, 'Failed to save category');
+                }
+            });
+            
+            document.getElementById('saveEmployee').addEventListener('click', async () => {
+                const employeeData = {
+                    name: document.getElementById('employeeName').value,
+                    email: document.getElementById('employeeEmail').value,
+                    phone: document.getElementById('employeePhone').value,
+                    role: document.getElementById('employeeRole').value,
+                    active: document.getElementById('employeeActive').checked
+                };
+                
+                const password = document.getElementById('employeePassword').value;
+                if (password) {
+                    // For simplicity, using a dummy hash. In production, hash on backend
+                    employeeData.password_hash = '$2a$10$dummy_hash_' + password;
+                }
+                
+                try {
+                    if (editingId) {
+                        await supabaseClient.updateEmployee(editingId, employeeData);
+                        showSuccess('Employee updated');
+                    } else {
+                        if (!password) {
+                            showError(null, 'Password is required for new employees');
+                            return;
+                        }
+                        await supabaseClient.createEmployee(employeeData);
+                        showSuccess('Employee created');
+                    }
+                    document.getElementById('employeeModal').classList.remove('show');
+                    await loadEmployees();
+                    editingId = null;
+                } catch (error) {
+                    showError(null, 'Failed to save employee');
                 }
             });
             
