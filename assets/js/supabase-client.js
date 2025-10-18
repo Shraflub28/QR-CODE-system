@@ -534,6 +534,126 @@ class SupabaseClient {
             orders: orders || []
         };
     }
+
+    // ============================================
+    // NEW FEATURES METHODS
+    // ============================================
+
+    /**
+     * Create waiter request
+     */
+    async createWaiterRequest(requestData) {
+        const { data, error } = await this.client
+            .from('waiter_requests')
+            .insert([requestData])
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Get waiter requests
+     */
+    async getWaiterRequests(filters = {}) {
+        let query = this.client
+            .from('waiter_requests')
+            .select('*, tables(table_number), employees(name)');
+        
+        if (filters.status) {
+            query = query.eq('status', filters.status);
+        }
+        
+        if (filters.tableId) {
+            query = query.eq('table_id', filters.tableId);
+        }
+        
+        query = query.order('created_at', { ascending: false });
+        
+        const { data, error } = await query;
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Update waiter request status
+     */
+    async updateWaiterRequest(requestId, updateData) {
+        const { data, error } = await this.client
+            .from('waiter_requests')
+            .update(updateData)
+            .eq('id', requestId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
+
+    /**
+     * Acknowledge waiter request
+     */
+    async acknowledgeWaiterRequest(requestId, employeeId) {
+        return await this.updateWaiterRequest(requestId, {
+            status: 'acknowledged',
+            acknowledged_by: employeeId,
+            acknowledged_at: new Date().toISOString()
+        });
+    }
+
+    /**
+     * Complete waiter request
+     */
+    async completeWaiterRequest(requestId) {
+        return await this.updateWaiterRequest(requestId, {
+            status: 'completed',
+            completed_at: new Date().toISOString()
+        });
+    }
+
+    /**
+     * Subscribe to waiter requests
+     */
+    subscribeToWaiterRequests(callback) {
+        const channel = this.client
+            .channel('waiter-requests-channel')
+            .on('postgres_changes', { 
+                event: '*', 
+                schema: 'public', 
+                table: 'waiter_requests' 
+            }, (payload) => {
+                callback({
+                    eventType: payload.eventType,
+                    new: payload.new,
+                    old: payload.old
+                });
+            })
+            .subscribe((status) => {
+                console.log('Waiter requests subscription status:', status);
+            });
+        
+        return channel;
+    }
+
+    /**
+     * Update order with payment method choice
+     */
+    async updateOrderPaymentMethod(orderId, paymentMethodChoice) {
+        const { data, error } = await this.client
+            .from('orders')
+            .update({ 
+                payment_method_choice: paymentMethodChoice,
+                updated_at: new Date().toISOString() 
+            })
+            .eq('id', orderId)
+            .select()
+            .single();
+        
+        if (error) throw error;
+        return data;
+    }
 }
 
 // Export singleton instance

@@ -261,12 +261,214 @@
             0%, 100% { box-shadow: var(--shadow); }
             50% { box-shadow: 0 0 20px rgba(76, 175, 80, 0.5); }
         }
+        
+        /* Waiter Requests Section */
+        .waiter-requests-container {
+            position: fixed;
+            top: 100px;
+            right: 2rem;
+            width: 320px;
+            max-height: 400px;
+            overflow-y: auto;
+            z-index: 200;
+        }
+        
+        html[dir="rtl"] .waiter-requests-container {
+            right: auto;
+            left: 2rem;
+        }
+        
+        .waiter-request-card {
+            background: white;
+            border-left: 4px solid #ff9800;
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--border-radius);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            animation: slideIn 0.3s ease;
+        }
+        
+        html[dir="rtl"] .waiter-request-card {
+            border-left: none;
+            border-right: 4px solid #ff9800;
+        }
+        
+        .waiter-request-card.acknowledged {
+            border-left-color: #4CAF50;
+            opacity: 0.7;
+        }
+        
+        html[dir="rtl"] .waiter-request-card.acknowledged {
+            border-right-color: #4CAF50;
+        }
+        
+        .waiter-request-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.5rem;
+        }
+        
+        .waiter-request-table {
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        
+        .waiter-request-time {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+        
+        .waiter-request-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.75rem;
+        }
+        
+        /* Table Layout View */
+        .table-layout-canvas {
+            position: relative;
+            width: 100%;
+            min-height: 600px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            padding: 2rem;
+            overflow: auto;
+        }
+        
+        .layout-table {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .layout-table:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        
+        .layout-table.available {
+            background: #e0e0e0;
+            border: 2px solid #bdbdbd;
+        }
+        
+        .layout-table.pending {
+            background: #fff3e0;
+            border: 3px solid #ff9800;
+            animation: pulse-orange 2s infinite;
+        }
+        
+        .layout-table.preparing {
+            background: #e3f2fd;
+            border: 3px solid #2196F3;
+            animation: pulse-blue 2s infinite;
+        }
+        
+        .layout-table.ready {
+            background: #e8f5e9;
+            border: 3px solid #4CAF50;
+            animation: pulse-green 2s infinite;
+        }
+        
+        .layout-table.served {
+            background: #f3e5f5;
+            border: 2px solid #9C27B0;
+        }
+        
+        @keyframes pulse-orange {
+            0%, 100% { box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3); }
+            50% { box-shadow: 0 4px 20px rgba(255, 152, 0, 0.6); }
+        }
+        
+        @keyframes pulse-blue {
+            0%, 100% { box-shadow: 0 2px 8px rgba(33, 150, 243, 0.3); }
+            50% { box-shadow: 0 4px 20px rgba(33, 150, 243, 0.6); }
+        }
+        
+        @keyframes pulse-green {
+            0%, 100% { box-shadow: 0 2px 8px rgba(76, 175, 80, 0.3); }
+            50% { box-shadow: 0 4px 20px rgba(76, 175, 80, 0.6); }
+        }
+        
+        .layout-table-icon {
+            width: 60%;
+            height: 60%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        
+        .layout-table-number {
+            position: absolute;
+            bottom: 5px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 3px 10px;
+            border-radius: 12px;
+            font-size: 0.875rem;
+            font-weight: 700;
+            pointer-events: none;
+        }
+        
+        .layout-table-status {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            border: 2px solid white;
+        }
+        
+        .layout-table-status.pending {
+            background: #ff9800;
+        }
+        
+        .layout-table-status.preparing {
+            background: #2196F3;
+        }
+        
+        .layout-table-status.ready {
+            background: #4CAF50;
+        }
+        
+        .layout-table-status.served {
+            background: #9C27B0;
+        }
+        
+        .layout-table-info {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0,0,0,0.9);
+            color: white;
+            padding: 0.5rem 0.75rem;
+            border-radius: 8px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease;
+            z-index: 100;
+        }
+        
+        .layout-table:hover .layout-table-info {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
     <!-- Audio Enable Banner -->
     <div id="audioEnableBanner" style="display: none; background: #ff9800; color: white; padding: 0.75rem; text-align: center; cursor: pointer; font-weight: 500;">
-        🔊 Click anywhere to enable notification sounds
+        <span data-icon="volume"></span> Click anywhere to enable notification sounds
     </div>
     
     <div class="dashboard-header">
@@ -280,6 +482,10 @@
                 </div>
             </div>
             <div class="status-tabs">
+                <button class="status-tab" data-view="layout" id="tabLayout"><span data-icon="map"></span> Floor Plan</button>
+                <button class="status-tab active" data-view="orders" id="tabOrders"><span data-icon="clipboard"></span> Orders</button>
+            </div>
+            <div class="status-tabs" id="orderStatusTabs" style="margin-top: 0.5rem;">
                 <button class="status-tab active" data-status="all" id="tabAll">All Orders</button>
                 <button class="status-tab" data-status="pending" id="tabPending">New Orders</button>
                 <button class="status-tab" data-status="preparing" id="tabPreparing">In Progress</button>
@@ -289,7 +495,50 @@
         </div>
     </div>
     
+    <!-- Waiter Requests Sidebar -->
+    <div class="waiter-requests-container" id="waiterRequestsContainer">
+        <!-- Waiter requests will be inserted here -->
+    </div>
+    
+    <div class="dashboard-header" style="display: none;">
+        <div class="container">
+        </div>
+    </div>
+    
     <div class="container">
+        <!-- Table Layout View -->
+        <div id="layoutView" style="display: none;">
+            <div class="layout-legend" style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #e0e0e0; border: 2px solid #bdbdbd; border-radius: 4px;"></div>
+                    <span style="font-size: 0.875rem;">Available</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #fff3e0; border: 2px solid #ff9800; border-radius: 4px;"></div>
+                    <span style="font-size: 0.875rem;">Pending</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #e3f2fd; border: 2px solid #2196F3; border-radius: 4px;"></div>
+                    <span style="font-size: 0.875rem;">Preparing</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #e8f5e9; border: 2px solid #4CAF50; border-radius: 4px;"></div>
+                    <span style="font-size: 0.875rem;">Ready</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                    <div style="width: 20px; height: 20px; background: #f3e5f5; border: 2px solid #9C27B0; border-radius: 4px;"></div>
+                    <span style="font-size: 0.875rem;">Served</span>
+                </div>
+            </div>
+            <div class="table-layout-canvas" id="tableLayoutCanvas">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Loading floor plan...</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Orders Grid View -->
         <div class="orders-grid" id="ordersGrid">
             <div class="loading-spinner">
                 <div class="spinner"></div>
@@ -306,22 +555,53 @@
         </svg>
     </button>
     
+    <!-- Table Details Modal -->
+    <div class="modal" id="tableDetailsModal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3 id="tableDetailsTitle">Table Details</h3>
+                <button class="btn btn-sm" onclick="document.getElementById('tableDetailsModal').classList.remove('show')">&times;</button>
+            </div>
+            <div class="modal-body" id="tableDetailsBody">
+                <!-- Content will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
     <script type="module">
+        import { icons } from '/assets/js/icons.js';
         import { supabaseClient } from '/assets/js/supabase-client.js';
         import { loadLanguage, getBrowserLanguage, setPageDirection, getUrlParameter, setUrlParameter, formatCurrency, formatDateTime, formatTime, showSuccess, showError } from '/assets/js/utils.js';
         
         let currentLang = getUrlParameter('lang') || getBrowserLanguage();
         let translations = {};
         let orders = [];
+        let tables = [];
         let currentStatus = 'all';
+        let currentView = 'orders'; // 'orders' or 'layout'
         let realtimeChannel = null;
+        let waiterRequestsChannel = null;
         let pollingInterval = null;
         let lastOrderIds = new Set(); // Track order IDs we've seen
+        let waiterRequests = [];
         let audioContext = null; // Audio context
         let audioEnabled = false; // Track if audio is enabled
         
+        // Initialize icons in HTML
+        function initIcons() {
+            document.querySelectorAll('[data-icon]').forEach(el => {
+                const iconName = el.getAttribute('data-icon');
+                if (icons[iconName]) {
+                    el.innerHTML = icons[iconName];
+                }
+            });
+        }
+        
         async function init() {
             try {
+                // Initialize icons first
+                initIcons();
+                
                 // Load translations
                 translations = await loadLanguage(currentLang);
                 setPageDirection(currentLang);
@@ -331,11 +611,18 @@
                 // Initialize Supabase
                 await supabaseClient.init();
                 
-                // Load orders
+                // Load orders and tables
                 await loadOrders();
+                await loadTables();
                 
                 // Setup real-time subscription (fallback to polling if it fails)
                 setupRealtimeSubscription();
+                
+                // Setup waiter requests subscription
+                setupWaiterRequestsSubscription();
+                
+                // Load waiter requests
+                await loadWaiterRequests();
                 
                 // Start polling for new orders every 2 seconds
                 startPolling();
@@ -356,10 +643,25 @@
             try {
                 const filters = currentStatus !== 'all' ? { status: currentStatus } : {};
                 orders = await supabaseClient.getOrders(filters);
-                renderOrders();
+                if (currentView === 'orders') {
+                    renderOrders();
+                } else {
+                    renderTableLayout();
+                }
             } catch (error) {
                 console.error('Failed to load orders:', error);
                 showError('#ordersGrid', translations.errors?.loadFailed || 'Failed to load orders');
+            }
+        }
+        
+        async function loadTables() {
+            try {
+                tables = await supabaseClient.getTables();
+                if (currentView === 'layout') {
+                    renderTableLayout();
+                }
+            } catch (error) {
+                console.error('Failed to load tables:', error);
             }
         }
         
@@ -384,25 +686,45 @@
                 const tableNumber = order.tables?.table_number || 'N/A';
                 
                 return `
-                    <div class="order-card">
+                    <div class="order-card" data-table-id="${order.table_id}">
                         <div class="order-header">
                             <div class="order-info">
-                                <h3>${translations.staff?.orderNumber || 'Order'} #${order.id.slice(0, 8)}</h3>
-                                <div class="order-time">${formatTime(order.created_at)}</div>
+                                <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+                                    <div style="
+                                        background: linear-gradient(135deg, var(--primary-color), #1976D2);
+                                        color: white;
+                                        padding: 0.5rem 0.75rem;
+                                        border-radius: 8px;
+                                        font-weight: 700;
+                                        font-size: 1.125rem;
+                                        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+                                        min-width: 60px;
+                                        text-align: center;
+                                    ">
+                                        T${tableNumber}
+                                    </div>
+                                    <div>
+                                        <h3 style="margin: 0;">${translations.staff?.orderNumber || 'Order'} #${order.id.slice(0, 8)}</h3>
+                                        <div class="order-time">${formatTime(order.created_at)}</div>
+                                    </div>
+                                </div>
                             </div>
                             <div>
                                 <span class="badge badge-${getStatusColor(order.status)}">
                                     ${translations.staff?.statuses?.[order.status] || order.status}
                                 </span>
-                                <div style="margin-top: 0.5rem; color: var(--text-secondary); font-size: 0.875rem;">
-                                    ${translations.staff?.table || 'Table'} ${tableNumber}
+                                <div style="margin-top: 0.5rem;">
+                                    ${getPaymentMethodBadge(order.payment_method_choice)}
                                 </div>
                             </div>
                         </div>
                         <div class="order-items">
                             ${items.map(item => `
                                 <div class="order-item">
-                                    <span><span class="order-item-name">${item.name}</span> × ${item.quantity}</span>
+                                    <span>
+                                        <span class="order-item-name">${item.name}</span> × ${item.quantity}
+                                        ${item.preparation_time_min ? `<span style="color: var(--text-secondary); font-size: 0.75rem;"> (${item.preparation_time_min} min)</span>` : ''}
+                                    </span>
                                     <span>${formatCurrency(item.price * item.quantity)}</span>
                                 </div>
                             `).join('')}
@@ -418,6 +740,172 @@
             }).join('');
         }
         
+        function renderTableLayout() {
+            const canvas = document.getElementById('tableLayoutCanvas');
+            
+            if (tables.length === 0) {
+                canvas.innerHTML = '<div class="empty-state"><p>No tables found</p></div>';
+                return;
+            }
+            
+            // Get table statuses from orders
+            const tableStatuses = {};
+            orders.forEach(order => {
+                const tableId = order.table_id;
+                if (!tableStatuses[tableId] || getStatusPriority(order.status) > getStatusPriority(tableStatuses[tableId])) {
+                    tableStatuses[tableId] = order.status;
+                }
+            });
+            
+            canvas.innerHTML = tables.map(table => {
+                const status = tableStatuses[table.id] || 'available';
+                const order = orders.find(o => o.table_id === table.id);
+                const posX = table.position_x || 100;
+                const posY = table.position_y || 100;
+                const width = table.width || 80;
+                const height = table.height || 80;
+                const rotation = table.rotation || 0;
+                
+                let infoText = 'Available';
+                if (order) {
+                    infoText = `${order.status} - ${formatCurrency(order.total)}`;
+                }
+                
+                return `
+                    <div class="layout-table ${status}" 
+                         style="left: ${posX}px; top: ${posY}px; width: ${width}px; height: ${height}px; transform: rotate(${rotation}deg);"
+                         onclick="window.showTableDetails('${table.id}')">
+                        <img src="/assets/images/tabel.png" class="layout-table-icon" alt="Table">
+                        <div class="layout-table-number">${table.table_number}</div>
+                        ${status !== 'available' ? `<div class="layout-table-status ${status}"></div>` : ''}
+                        <div class="layout-table-info">${infoText}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function getStatusPriority(status) {
+            const priorities = {
+                pending: 4,
+                preparing: 3,
+                ready: 5,
+                served: 2,
+                available: 1
+            };
+            return priorities[status] || 0;
+        }
+        
+        window.showTableDetails = function(tableId) {
+            const table = tables.find(t => t.id === tableId);
+            const tableOrders = orders.filter(o => o.table_id === tableId);
+            
+            if (!table) return;
+            
+            const modal = document.getElementById('tableDetailsModal');
+            const title = document.getElementById('tableDetailsTitle');
+            const body = document.getElementById('tableDetailsBody');
+            
+            title.textContent = `Table ${table.table_number}`;
+            
+            if (tableOrders.length === 0) {
+                body.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                        <div style="font-size: 3rem; margin-bottom: 1rem;">${icons.checkCircle}</div>
+                        <h3 style="color: var(--text-secondary);">Table Available</h3>
+                        <p style="color: var(--text-secondary);">No active orders</p>
+                    </div>
+                `;
+            } else {
+                const totalAmount = tableOrders.reduce((sum, order) => sum + parseFloat(order.total), 0);
+                
+                body.innerHTML = `
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                            <div>
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Active Orders</div>
+                                <div style="font-size: 1.5rem; font-weight: 700;">${tableOrders.length}</div>
+                            </div>
+                            <div style="text-align: right;">
+                                <div style="font-size: 0.875rem; color: var(--text-secondary);">Total Amount</div>
+                                <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${formatCurrency(totalAmount)}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    ${tableOrders.map(order => {
+                        const items = Array.isArray(order.items) ? order.items : [];
+                        const estimatedTime = items.reduce((max, item) => Math.max(max, item.preparation_time_min || 0), 0);
+                        
+                        return `
+                            <div style="background: var(--bg-secondary); border-radius: var(--border-radius); padding: 1rem; margin-bottom: 1rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                                    <div>
+                                        <div style="font-weight: 600;">Order #${order.id.slice(0, 8)}</div>
+                                        <div style="font-size: 0.75rem; color: var(--text-secondary);">${formatTime(order.created_at)}</div>
+                                    </div>
+                                    <span class="badge badge-${getStatusColor(order.status)}">
+                                        ${order.status}
+                                    </span>
+                                </div>
+                                
+                                ${order.payment_method_choice ? `
+                                    <div style="margin-bottom: 0.75rem;">
+                                        ${getPaymentMethodBadge(order.payment_method_choice)}
+                                    </div>
+                                ` : ''}
+                                
+                                ${estimatedTime > 0 ? `
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.75rem; padding: 0.5rem; background: #fff3e0; border-radius: 6px;">
+                                        <span>${icons.clock}</span>
+                                        <span style="font-size: 0.875rem; color: #f57c00;">Est. ${estimatedTime} minutes</span>
+                                    </div>
+                                ` : ''}
+                                
+                                <div style="border-top: 1px solid var(--border-color); padding-top: 0.75rem;">
+                                    ${items.map(item => `
+                                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                                            <div style="flex: 1;">
+                                                <span style="font-weight: 500;">${item.name}</span>
+                                                <span style="color: var(--text-secondary);"> × ${item.quantity}</span>
+                                                ${item.preparation_time_min ? `
+                                                    <span style="color: var(--text-secondary); font-size: 0.75rem;"> (${item.preparation_time_min} min)</span>
+                                                ` : ''}
+                                            </div>
+                                            <div style="font-weight: 600;">${formatCurrency(item.price * item.quantity)}</div>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                                
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 0.75rem; padding-top: 0.75rem; border-top: 2px solid var(--border-color);">
+                                    <span style="font-weight: 700;">Order Total</span>
+                                    <span style="font-weight: 700; font-size: 1.125rem; color: var(--primary-color);">${formatCurrency(order.total)}</span>
+                                </div>
+                                
+                                ${order.notes ? `
+                                    <div style="margin-top: 0.75rem; padding: 0.5rem; background: #fff9c4; border-radius: 6px; font-size: 0.875rem;">
+                                        <strong>Note:</strong> ${order.notes}
+                                    </div>
+                                ` : ''}
+                                
+                                <div style="margin-top: 1rem; display: flex; gap: 0.5rem; justify-content: flex-end;">
+                                    ${getStatusActions(order)}
+                                </div>
+                            </div>
+                        `;
+                    }).join('')}
+                    
+                    <div style="margin-top: 1.5rem; padding-top: 1rem; border-top: 2px solid var(--border-color);">
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-size: 1.125rem; font-weight: 700;">Table Total</span>
+                            <span style="font-size: 1.5rem; font-weight: 700; color: var(--primary-color);">${formatCurrency(totalAmount)}</span>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            modal.classList.add('show');
+        };
+        
         function getStatusColor(status) {
             const colors = {
                 pending: 'warning',
@@ -427,6 +915,34 @@
                 cancelled: 'danger'
             };
             return colors[status] || 'primary';
+        }
+        
+        function getPaymentMethodBadge(paymentMethod) {
+            const methods = {
+                cash: { icon: icons.cash, label: 'Cash', color: '#4CAF50' },
+                tpe: { icon: icons.card, label: 'Card (TPE)', color: '#2196F3' },
+                online: { icon: icons.online, label: 'Paid Online', color: '#9C27B0' }
+            };
+            
+            const method = methods[paymentMethod] || methods.cash;
+            
+            return `
+                <span style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 0.25rem;
+                    padding: 0.25rem 0.5rem;
+                    background: ${method.color}15;
+                    color: ${method.color};
+                    border: 1px solid ${method.color}40;
+                    border-radius: 12px;
+                    font-size: 0.75rem;
+                    font-weight: 600;
+                ">
+                    <span>${method.icon}</span>
+                    <span>${method.label}</span>
+                </span>
+            `;
         }
         
         function getStatusActions(order) {
@@ -460,6 +976,15 @@
                 await supabaseClient.updateOrderStatus(orderId, newStatus);
                 showSuccess(translations.staff?.updateStatus || 'Status updated');
                 await loadOrders();
+                
+                // If modal is open, refresh it
+                const modal = document.getElementById('tableDetailsModal');
+                if (modal.classList.contains('show')) {
+                    const order = orders.find(o => o.id === orderId);
+                    if (order) {
+                        window.showTableDetails(order.table_id);
+                    }
+                }
             } catch (error) {
                 console.error('Failed to update status:', error);
                 showError(null, translations.errors?.saveFailed || 'Failed to update status');
@@ -484,6 +1009,128 @@
             console.log('✅ Real-time subscription active');
         }
         
+        function setupWaiterRequestsSubscription() {
+            waiterRequestsChannel = supabaseClient.subscribeToWaiterRequests((payload) => {
+                console.log('Waiter request update:', payload);
+                
+                if (payload.eventType === 'INSERT' && payload.new) {
+                    showWaiterRequestNotification(payload.new);
+                    playNotificationSound();
+                }
+                
+                // Reload waiter requests
+                loadWaiterRequests();
+            });
+            
+            console.log('✅ Waiter requests subscription active');
+        }
+        
+        async function loadWaiterRequests() {
+            try {
+                waiterRequests = await supabaseClient.getWaiterRequests({ status: 'pending' });
+                renderWaiterRequests();
+            } catch (error) {
+                console.error('Failed to load waiter requests:', error);
+            }
+        }
+        
+        function renderWaiterRequests() {
+            const container = document.getElementById('waiterRequestsContainer');
+            
+            if (waiterRequests.length === 0) {
+                container.innerHTML = '';
+                return;
+            }
+            
+            container.innerHTML = waiterRequests.map(request => {
+                const tableNumber = request.tables?.table_number || 'N/A';
+                const timeAgo = getTimeAgo(request.created_at);
+                
+                return `
+                    <div class="waiter-request-card ${request.status}">
+                        <div class="waiter-request-header">
+                            <div class="waiter-request-table">${icons.bell} Table ${tableNumber}</div>
+                            <div class="waiter-request-time">${timeAgo}</div>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.875rem;">
+                            ${request.message || 'Requesting assistance'}
+                        </div>
+                        <div class="waiter-request-actions">
+                            <button class="btn btn-success btn-sm" onclick="window.acknowledgeRequest('${request.id}')">
+                                Acknowledge
+                            </button>
+                            <button class="btn btn-primary btn-sm" onclick="window.completeRequest('${request.id}')">
+                                Complete
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        function showWaiterRequestNotification(request) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.borderLeftColor = '#ff9800';
+            notification.innerHTML = `
+                <div class="notification-header">
+                    <div class="notification-title">
+                        <span class="notification-icon">${icons.bell}</span>
+                        <span>Waiter Request!</span>
+                    </div>
+                    <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+                </div>
+                <div class="notification-body">
+                    <strong>Table ${request.tables?.table_number || request.table_id}</strong><br>
+                    ${request.message || 'Customer needs assistance'}
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                setTimeout(() => notification.remove(), 300);
+            }, 8000);
+        }
+        
+        window.acknowledgeRequest = async function(requestId) {
+            try {
+                await supabaseClient.acknowledgeWaiterRequest(requestId, null);
+                await loadWaiterRequests();
+                showSuccess('Request acknowledged');
+            } catch (error) {
+                console.error('Failed to acknowledge request:', error);
+                showError(null, 'Failed to acknowledge request');
+            }
+        };
+        
+        window.completeRequest = async function(requestId) {
+            try {
+                await supabaseClient.completeWaiterRequest(requestId);
+                await loadWaiterRequests();
+                showSuccess('Request completed');
+            } catch (error) {
+                console.error('Failed to complete request:', error);
+                showError(null, 'Failed to complete request');
+            }
+        };
+        
+        function getTimeAgo(timestamp) {
+            const now = new Date();
+            const time = new Date(timestamp);
+            const diffMs = now - time;
+            const diffMins = Math.floor(diffMs / 60000);
+            
+            if (diffMins < 1) return 'Just now';
+            if (diffMins === 1) return '1 min ago';
+            if (diffMins < 60) return `${diffMins} mins ago`;
+            
+            const diffHours = Math.floor(diffMins / 60);
+            if (diffHours === 1) return '1 hour ago';
+            return `${diffHours} hours ago`;
+        }
+        
         function showNewOrderNotification(order) {
             // Create notification element
             const notification = document.createElement('div');
@@ -491,7 +1138,7 @@
             notification.innerHTML = `
                 <div class="notification-header">
                     <div class="notification-title">
-                        <span class="notification-icon">🔔</span>
+                        <span class="notification-icon">${icons.bell}</span>
                         <span>${translations.staff?.newOrder || 'New Order!'}</span>
                     </div>
                     <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
@@ -660,12 +1307,41 @@
             }
         });
         
+        function switchView(view) {
+            currentView = view;
+            
+            // Update tab buttons
+            document.querySelectorAll('[data-view]').forEach(tab => {
+                tab.classList.toggle('active', tab.dataset.view === view);
+            });
+            
+            // Show/hide views
+            if (view === 'layout') {
+                document.getElementById('layoutView').style.display = 'block';
+                document.getElementById('ordersGrid').style.display = 'none';
+                document.getElementById('orderStatusTabs').style.display = 'none';
+                renderTableLayout();
+            } else {
+                document.getElementById('layoutView').style.display = 'none';
+                document.getElementById('ordersGrid').style.display = 'grid';
+                document.getElementById('orderStatusTabs').style.display = 'flex';
+                renderOrders();
+            }
+        }
+        
         function setupEventListeners() {
+            // View tabs (Layout vs Orders)
+            document.querySelectorAll('[data-view]').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    switchView(tab.dataset.view);
+                });
+            });
+            
             // Status tabs
-            document.querySelectorAll('.status-tab').forEach(tab => {
+            document.querySelectorAll('[data-status]').forEach(tab => {
                 tab.addEventListener('click', () => {
                     currentStatus = tab.dataset.status;
-                    document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+                    document.querySelectorAll('[data-status]').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
                     loadOrders();
                 });

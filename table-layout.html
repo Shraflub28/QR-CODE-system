@@ -1,0 +1,759 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Layout Editor - Restaurant</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="stylesheet" href="/assets/css/main.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: var(--bg-secondary);
+        }
+        
+        .layout-header {
+            background: white;
+            box-shadow: var(--shadow);
+            padding: 1rem 1.5rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+            height: 60px;
+        }
+        
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        
+        .toolbar {
+            background: white;
+            box-shadow: var(--shadow);
+            padding: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            position: fixed;
+            top: 60px;
+            left: 0;
+            right: 0;
+            z-index: 999;
+            height: 50px;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .canvas-container {
+            position: fixed;
+            top: 110px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            overflow: auto;
+            background: #f5f5f5;
+            background-image: 
+                linear-gradient(rgba(0,0,0,.05) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,.05) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .canvas {
+            position: relative;
+            width: 2000px;
+            height: 1500px;
+            margin: 20px;
+            background: white;
+            box-shadow: var(--shadow-lg);
+            border-radius: var(--border-radius);
+        }
+        
+        .table-item {
+            position: absolute;
+            cursor: move;
+            user-select: none;
+            transition: box-shadow 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .table-item:hover {
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            border-color: var(--primary-color);
+        }
+        
+        .table-item.selected {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+        }
+        
+        .table-item.occupied {
+            border-color: #ff9800;
+            background: #fff3e0;
+        }
+        
+        .table-icon {
+            width: 60%;
+            height: 60%;
+            object-fit: contain;
+            pointer-events: none;
+        }
+        
+        .table-number {
+            position: absolute;
+            bottom: 5px;
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            pointer-events: none;
+        }
+        
+        .resize-handle {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: var(--primary-color);
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: nwse-resize;
+            display: none;
+        }
+        
+        .table-item.selected .resize-handle {
+            display: block;
+        }
+        
+        .resize-handle.bottom-right {
+            bottom: -6px;
+            right: -6px;
+        }
+        
+        .properties-panel {
+            position: fixed;
+            top: 110px;
+            right: 20px;
+            width: 280px;
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow-lg);
+            padding: 1.5rem;
+            max-height: calc(100vh - 130px);
+            overflow-y: auto;
+            display: none;
+        }
+        
+        .properties-panel.show {
+            display: block;
+        }
+        
+        .property-group {
+            margin-bottom: 1.5rem;
+        }
+        
+        .property-label {
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+            color: var(--text-primary);
+        }
+        
+        .property-input {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: var(--border-radius);
+            font-size: 0.875rem;
+        }
+        
+        .property-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+        }
+        
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: white;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--border-radius);
+            border: 1px solid var(--border-color);
+        }
+        
+        .zoom-level {
+            min-width: 50px;
+            text-align: center;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+        
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.25rem 0.75rem;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            font-size: 0.875rem;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #4CAF50;
+        }
+        
+        .btn-icon {
+            padding: 0.5rem;
+            min-width: auto;
+        }
+        
+        .divider {
+            width: 1px;
+            height: 30px;
+            background: var(--border-color);
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <div class="layout-header">
+        <div class="header-left">
+            <h2 style="margin: 0;"><span data-icon="map"></span> Table Layout Editor</h2>
+            <div class="status-indicator">
+                <div class="status-dot"></div>
+                <span id="statusText">Ready</span>
+            </div>
+        </div>
+        <div class="header-right">
+            <button class="btn btn-secondary" id="backBtn">← Back to Admin</button>
+            <button class="btn btn-success" id="saveBtn"><span data-icon="save"></span> Save Layout</button>
+        </div>
+    </div>
+    
+    <!-- Toolbar -->
+    <div class="toolbar">
+        <button class="btn btn-sm btn-primary" id="addTableBtn"><span data-icon="plus"></span> Add Table</button>
+        <button class="btn btn-sm btn-danger" id="deleteTableBtn" disabled><span data-icon="trash"></span> Delete</button>
+        <div class="divider"></div>
+        <button class="btn btn-sm btn-icon" id="alignLeftBtn" title="Align Left"><span data-icon="arrowLeft"></span></button>
+        <button class="btn btn-sm btn-icon" id="alignCenterBtn" title="Align Center">&#8596;</button>
+        <button class="btn btn-sm btn-icon" id="alignRightBtn" title="Align Right"><span data-icon="arrowRight"></span></button>
+        <div class="divider"></div>
+        <button class="btn btn-sm btn-icon" id="alignTopBtn" title="Align Top">&#8593;</button>
+        <button class="btn btn-sm btn-icon" id="alignMiddleBtn" title="Align Middle">&#8597;</button>
+        <button class="btn btn-sm btn-icon" id="alignBottomBtn" title="Align Bottom">&#8595;</button>
+        <div class="divider"></div>
+        <div class="zoom-controls">
+            <button class="btn btn-sm btn-icon" id="zoomOutBtn">-</button>
+            <span class="zoom-level" id="zoomLevel">100%</span>
+            <button class="btn btn-sm btn-icon" id="zoomInBtn">+</button>
+        </div>
+        <div class="divider"></div>
+        <button class="btn btn-sm" id="resetViewBtn"><span data-icon="refresh"></span> Reset View</button>
+    </div>
+    
+    <!-- Canvas Container -->
+    <div class="canvas-container" id="canvasContainer">
+        <div class="canvas" id="canvas">
+            <!-- Tables will be added here dynamically -->
+        </div>
+    </div>
+    
+    <!-- Properties Panel -->
+    <div class="properties-panel" id="propertiesPanel">
+        <h3 style="margin-top: 0;">Table Properties</h3>
+        
+        <div class="property-group">
+            <label class="property-label">Table Number</label>
+            <input type="number" class="property-input" id="propTableNumber" min="1">
+        </div>
+        
+        <div class="property-group">
+            <label class="property-label">Position</label>
+            <div class="property-row">
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-secondary);">X</label>
+                    <input type="number" class="property-input" id="propX" min="0">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-secondary);">Y</label>
+                    <input type="number" class="property-input" id="propY" min="0">
+                </div>
+            </div>
+        </div>
+        
+        <div class="property-group">
+            <label class="property-label">Size</label>
+            <div class="property-row">
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-secondary);">Width</label>
+                    <input type="number" class="property-input" id="propWidth" min="40" max="300">
+                </div>
+                <div>
+                    <label style="font-size: 0.75rem; color: var(--text-secondary);">Height</label>
+                    <input type="number" class="property-input" id="propHeight" min="40" max="300">
+                </div>
+            </div>
+        </div>
+        
+        <div class="property-group">
+            <label class="property-label">Rotation (degrees)</label>
+            <input type="range" class="property-input" id="propRotation" min="0" max="360" step="15">
+            <div style="text-align: center; margin-top: 0.25rem; font-size: 0.875rem;" id="rotationValue">0°</div>
+        </div>
+        
+        <div class="property-group">
+            <label class="property-label">Status</label>
+            <label style="display: flex; align-items: center; gap: 0.5rem;">
+                <input type="checkbox" class="form-checkbox" id="propActive" checked>
+                <span>Active</span>
+            </label>
+        </div>
+        
+        <button class="btn btn-primary" style="width: 100%;" id="applyPropertiesBtn">Apply Changes</button>
+    </div>
+    
+    <script type="module">
+        import { icons } from '/assets/js/icons.js';
+        import { supabaseClient } from '/assets/js/supabase-client.js';
+        import { showSuccess, showError, showInfo } from '/assets/js/utils.js';
+        
+        let tables = [];
+        let selectedTable = null;
+        let isDragging = false;
+        let isResizing = false;
+        let dragStartX = 0;
+        let dragStartY = 0;
+        let dragStartTableX = 0;
+        let dragStartTableY = 0;
+        let zoomLevel = 1;
+        let hasUnsavedChanges = false;
+        
+        // Initialize icons in HTML
+        function initIcons() {
+            document.querySelectorAll('[data-icon]').forEach(el => {
+                const iconName = el.getAttribute('data-icon');
+                if (icons[iconName]) {
+                    el.innerHTML = icons[iconName];
+                }
+            });
+        }
+        
+        async function init() {
+            // Initialize icons first
+            initIcons();
+            try {
+                await supabaseClient.init();
+                await loadTables();
+                setupEventListeners();
+                showInfo('Click and drag tables to move them. Use resize handle to change size.');
+            } catch (error) {
+                console.error('Initialization error:', error);
+                showError(null, 'Failed to initialize');
+            }
+        }
+        
+        async function loadTables() {
+            try {
+                document.getElementById('statusText').textContent = 'Loading...';
+                tables = await supabaseClient.getTables();
+                renderTables();
+                document.getElementById('statusText').textContent = `${tables.length} tables loaded`;
+            } catch (error) {
+                console.error('Failed to load tables:', error);
+                showError(null, 'Failed to load tables');
+                document.getElementById('statusText').textContent = 'Error';
+            }
+        }
+        
+        function renderTables() {
+            const canvas = document.getElementById('canvas');
+            canvas.innerHTML = '';
+            
+            tables.forEach(table => {
+                const tableEl = createTableElement(table);
+                canvas.appendChild(tableEl);
+            });
+        }
+        
+        function createTableElement(table) {
+            const div = document.createElement('div');
+            div.className = 'table-item';
+            div.dataset.tableId = table.id;
+            div.style.left = `${table.position_x || 100}px`;
+            div.style.top = `${table.position_y || 100}px`;
+            div.style.width = `${table.width || 80}px`;
+            div.style.height = `${table.height || 80}px`;
+            div.style.transform = `rotate(${table.rotation || 0}deg)`;
+            
+            if (!table.active) {
+                div.style.opacity = '0.5';
+            }
+            
+            div.innerHTML = `
+                <img src="/assets/images/tabel.png" class="table-icon" alt="Table">
+                <div class="table-number">${table.table_number}</div>
+                <div class="resize-handle bottom-right"></div>
+            `;
+            
+            // Drag events
+            div.addEventListener('mousedown', (e) => startDrag(e, table));
+            
+            // Resize handle events
+            const resizeHandle = div.querySelector('.resize-handle');
+            resizeHandle.addEventListener('mousedown', (e) => startResize(e, table));
+            
+            return div;
+        }
+        
+        function startDrag(e, table) {
+            if (e.target.classList.contains('resize-handle')) return;
+            
+            e.preventDefault();
+            isDragging = true;
+            selectedTable = table;
+            
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragStartTableX = table.position_x || 100;
+            dragStartTableY = table.position_y || 100;
+            
+            selectTable(table);
+        }
+        
+        function startResize(e, table) {
+            e.preventDefault();
+            e.stopPropagation();
+            isResizing = true;
+            selectedTable = table;
+            
+            dragStartX = e.clientX;
+            dragStartY = e.clientY;
+            dragStartTableX = table.width || 80;
+            dragStartTableY = table.height || 80;
+            
+            selectTable(table);
+        }
+        
+        function selectTable(table) {
+            // Remove selection from all tables
+            document.querySelectorAll('.table-item').forEach(el => {
+                el.classList.remove('selected');
+            });
+            
+            // Select this table
+            const tableEl = document.querySelector(`[data-table-id="${table.id}"]`);
+            if (tableEl) {
+                tableEl.classList.add('selected');
+            }
+            
+            selectedTable = table;
+            updatePropertiesPanel(table);
+            document.getElementById('deleteTableBtn').disabled = false;
+        }
+        
+        function updatePropertiesPanel(table) {
+            document.getElementById('propTableNumber').value = table.table_number;
+            document.getElementById('propX').value = table.position_x || 100;
+            document.getElementById('propY').value = table.position_y || 100;
+            document.getElementById('propWidth').value = table.width || 80;
+            document.getElementById('propHeight').value = table.height || 80;
+            document.getElementById('propRotation').value = table.rotation || 0;
+            document.getElementById('rotationValue').textContent = `${table.rotation || 0}°`;
+            document.getElementById('propActive').checked = table.active;
+            document.getElementById('propertiesPanel').classList.add('show');
+        }
+        
+        function setupEventListeners() {
+            // Mouse move for dragging and resizing
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging && selectedTable) {
+                    const deltaX = e.clientX - dragStartX;
+                    const deltaY = e.clientY - dragStartY;
+                    
+                    const newX = Math.max(0, dragStartTableX + deltaX);
+                    const newY = Math.max(0, dragStartTableY + deltaY);
+                    
+                    selectedTable.position_x = newX;
+                    selectedTable.position_y = newY;
+                    
+                    const tableEl = document.querySelector(`[data-table-id="${selectedTable.id}"]`);
+                    if (tableEl) {
+                        tableEl.style.left = `${newX}px`;
+                        tableEl.style.top = `${newY}px`;
+                    }
+                    
+                    updatePropertiesPanel(selectedTable);
+                    hasUnsavedChanges = true;
+                } else if (isResizing && selectedTable) {
+                    const deltaX = e.clientX - dragStartX;
+                    const deltaY = e.clientY - dragStartY;
+                    
+                    const newWidth = Math.max(40, Math.min(300, dragStartTableX + deltaX));
+                    const newHeight = Math.max(40, Math.min(300, dragStartTableY + deltaY));
+                    
+                    selectedTable.width = newWidth;
+                    selectedTable.height = newHeight;
+                    
+                    const tableEl = document.querySelector(`[data-table-id="${selectedTable.id}"]`);
+                    if (tableEl) {
+                        tableEl.style.width = `${newWidth}px`;
+                        tableEl.style.height = `${newHeight}px`;
+                    }
+                    
+                    updatePropertiesPanel(selectedTable);
+                    hasUnsavedChanges = true;
+                }
+            });
+            
+            // Mouse up to stop dragging/resizing
+            document.addEventListener('mouseup', () => {
+                isDragging = false;
+                isResizing = false;
+            });
+            
+            // Click on canvas to deselect
+            document.getElementById('canvas').addEventListener('click', (e) => {
+                if (e.target.id === 'canvas') {
+                    selectedTable = null;
+                    document.querySelectorAll('.table-item').forEach(el => {
+                        el.classList.remove('selected');
+                    });
+                    document.getElementById('propertiesPanel').classList.remove('show');
+                    document.getElementById('deleteTableBtn').disabled = true;
+                }
+            });
+            
+            // Save button
+            document.getElementById('saveBtn').addEventListener('click', saveLayout);
+            
+            // Back button
+            document.getElementById('backBtn').addEventListener('click', () => {
+                if (hasUnsavedChanges) {
+                    if (confirm('You have unsaved changes. Are you sure you want to leave?')) {
+                        window.location.href = '/admin.html';
+                    }
+                } else {
+                    window.location.href = '/admin.html';
+                }
+            });
+            
+            // Add table button
+            document.getElementById('addTableBtn').addEventListener('click', addNewTable);
+            
+            // Delete table button
+            document.getElementById('deleteTableBtn').addEventListener('click', deleteSelectedTable);
+            
+            // Apply properties button
+            document.getElementById('applyPropertiesBtn').addEventListener('click', applyProperties);
+            
+            // Rotation slider
+            document.getElementById('propRotation').addEventListener('input', (e) => {
+                document.getElementById('rotationValue').textContent = `${e.target.value}°`;
+            });
+            
+            // Zoom controls
+            document.getElementById('zoomInBtn').addEventListener('click', () => zoomCanvas(0.1));
+            document.getElementById('zoomOutBtn').addEventListener('click', () => zoomCanvas(-0.1));
+            document.getElementById('resetViewBtn').addEventListener('click', resetView);
+            
+            // Alignment buttons
+            document.getElementById('alignLeftBtn').addEventListener('click', () => alignTables('left'));
+            document.getElementById('alignCenterBtn').addEventListener('click', () => alignTables('center'));
+            document.getElementById('alignRightBtn').addEventListener('click', () => alignTables('right'));
+            document.getElementById('alignTopBtn').addEventListener('click', () => alignTables('top'));
+            document.getElementById('alignMiddleBtn').addEventListener('click', () => alignTables('middle'));
+            document.getElementById('alignBottomBtn').addEventListener('click', () => alignTables('bottom'));
+            
+            // Keyboard shortcuts
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Delete' && selectedTable) {
+                    deleteSelectedTable();
+                } else if (e.key === 's' && (e.ctrlKey || e.metaKey)) {
+                    e.preventDefault();
+                    saveLayout();
+                }
+            });
+        }
+        
+        async function addNewTable() {
+            try {
+                const maxTableNumber = Math.max(...tables.map(t => t.table_number), 0);
+                const newTableData = {
+                    table_number: maxTableNumber + 1,
+                    position_x: 100,
+                    position_y: 100,
+                    width: 80,
+                    height: 80,
+                    rotation: 0,
+                    active: true
+                };
+                
+                const newTable = await supabaseClient.createTable(newTableData);
+                tables.push(newTable);
+                renderTables();
+                showSuccess(`Table ${newTable.table_number} added`);
+                hasUnsavedChanges = false;
+            } catch (error) {
+                console.error('Failed to add table:', error);
+                showError(null, 'Failed to add table');
+            }
+        }
+        
+        async function deleteSelectedTable() {
+            if (!selectedTable) return;
+            
+            if (!confirm(`Delete Table ${selectedTable.table_number}?`)) return;
+            
+            try {
+                await supabaseClient.deleteTable(selectedTable.id);
+                tables = tables.filter(t => t.id !== selectedTable.id);
+                selectedTable = null;
+                renderTables();
+                document.getElementById('propertiesPanel').classList.remove('show');
+                document.getElementById('deleteTableBtn').disabled = true;
+                showSuccess('Table deleted');
+            } catch (error) {
+                console.error('Failed to delete table:', error);
+                showError(null, 'Failed to delete table');
+            }
+        }
+        
+        function applyProperties() {
+            if (!selectedTable) return;
+            
+            selectedTable.table_number = parseInt(document.getElementById('propTableNumber').value);
+            selectedTable.position_x = parseInt(document.getElementById('propX').value);
+            selectedTable.position_y = parseInt(document.getElementById('propY').value);
+            selectedTable.width = parseInt(document.getElementById('propWidth').value);
+            selectedTable.height = parseInt(document.getElementById('propHeight').value);
+            selectedTable.rotation = parseInt(document.getElementById('propRotation').value);
+            selectedTable.active = document.getElementById('propActive').checked;
+            
+            renderTables();
+            selectTable(selectedTable);
+            hasUnsavedChanges = true;
+            showSuccess('Properties applied');
+        }
+        
+        async function saveLayout() {
+            try {
+                document.getElementById('statusText').textContent = 'Saving...';
+                document.getElementById('saveBtn').disabled = true;
+                
+                // Update all tables in database
+                for (const table of tables) {
+                    await supabaseClient.updateTable(table.id, {
+                        table_number: table.table_number,
+                        position_x: table.position_x,
+                        position_y: table.position_y,
+                        width: table.width,
+                        height: table.height,
+                        rotation: table.rotation,
+                        active: table.active
+                    });
+                }
+                
+                hasUnsavedChanges = false;
+                document.getElementById('statusText').textContent = 'Saved successfully';
+                showSuccess('Layout saved successfully!');
+                document.getElementById('saveBtn').disabled = false;
+            } catch (error) {
+                console.error('Failed to save layout:', error);
+                showError(null, 'Failed to save layout');
+                document.getElementById('statusText').textContent = 'Save failed';
+                document.getElementById('saveBtn').disabled = false;
+            }
+        }
+        
+        function zoomCanvas(delta) {
+            zoomLevel = Math.max(0.5, Math.min(2, zoomLevel + delta));
+            const canvas = document.getElementById('canvas');
+            canvas.style.transform = `scale(${zoomLevel})`;
+            canvas.style.transformOrigin = 'top left';
+            document.getElementById('zoomLevel').textContent = `${Math.round(zoomLevel * 100)}%`;
+        }
+        
+        function resetView() {
+            zoomLevel = 1;
+            const canvas = document.getElementById('canvas');
+            canvas.style.transform = 'scale(1)';
+            document.getElementById('zoomLevel').textContent = '100%';
+            document.getElementById('canvasContainer').scrollTo(0, 0);
+        }
+        
+        function alignTables(direction) {
+            const selectedTables = document.querySelectorAll('.table-item.selected');
+            if (selectedTables.length === 0) {
+                showInfo('Please select tables to align');
+                return;
+            }
+            
+            // Get selected table objects
+            const tablesToAlign = tables.filter(t => 
+                Array.from(selectedTables).some(el => el.dataset.tableId === t.id)
+            );
+            
+            if (tablesToAlign.length === 0) return;
+            
+            switch(direction) {
+                case 'left':
+                    const minX = Math.min(...tablesToAlign.map(t => t.position_x));
+                    tablesToAlign.forEach(t => t.position_x = minX);
+                    break;
+                case 'center':
+                    const avgX = tablesToAlign.reduce((sum, t) => sum + t.position_x + t.width / 2, 0) / tablesToAlign.length;
+                    tablesToAlign.forEach(t => t.position_x = avgX - t.width / 2);
+                    break;
+                case 'right':
+                    const maxX = Math.max(...tablesToAlign.map(t => t.position_x + t.width));
+                    tablesToAlign.forEach(t => t.position_x = maxX - t.width);
+                    break;
+                case 'top':
+                    const minY = Math.min(...tablesToAlign.map(t => t.position_y));
+                    tablesToAlign.forEach(t => t.position_y = minY);
+                    break;
+                case 'middle':
+                    const avgY = tablesToAlign.reduce((sum, t) => sum + t.position_y + t.height / 2, 0) / tablesToAlign.length;
+                    tablesToAlign.forEach(t => t.position_y = avgY - t.height / 2);
+                    break;
+                case 'bottom':
+                    const maxY = Math.max(...tablesToAlign.map(t => t.position_y + t.height));
+                    tablesToAlign.forEach(t => t.position_y = maxY - t.height);
+                    break;
+            }
+            
+            renderTables();
+            hasUnsavedChanges = true;
+            showSuccess('Tables aligned');
+        }
+        
+        init();
+    </script>
+</body>
+</html>

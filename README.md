@@ -332,4 +332,4 @@ Ask natural language questions about your restaurant:
 
 ## License
 
-MIT License - this is just a demo if u want too use it you should contact me
+MIT License - Feel free to use this project for your restaurant!

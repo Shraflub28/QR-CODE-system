@@ -228,6 +228,97 @@
             margin-bottom: 1rem;
             opacity: 0.5;
         }
+        
+        /* Call Waiter Button */
+        .waiter-fab {
+            position: fixed;
+            bottom: 2rem;
+            right: 6rem;
+            width: 56px;
+            height: 56px;
+            background: var(--success-color);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: var(--shadow-lg);
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            z-index: 100;
+            border: none;
+        }
+        
+        html[dir="rtl"] .waiter-fab {
+            right: auto;
+            left: 6rem;
+        }
+        
+        .waiter-fab:hover {
+            transform: scale(1.1);
+        }
+        
+        /* Preparation Time Badge */
+        .prep-time-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+            padding: 0.25rem 0.5rem;
+            background: rgba(37, 99, 235, 0.1);
+            color: var(--primary-color);
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+        
+        /* Payment Method Selection */
+        .payment-section {
+            padding: 1.5rem;
+            border-top: 1px solid var(--border-color);
+        }
+        
+        .payment-section h4 {
+            margin-bottom: 1rem;
+            font-size: 1rem;
+        }
+        
+        .payment-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.75rem;
+        }
+        
+        .payment-option {
+            padding: 1rem;
+            border: 2px solid var(--border-color);
+            border-radius: var(--border-radius);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            background: white;
+        }
+        
+        .payment-option:hover {
+            border-color: var(--primary-color);
+            background: rgba(37, 99, 235, 0.05);
+        }
+        
+        .payment-option.selected {
+            border-color: var(--primary-color);
+            background: var(--primary-color);
+            color: white;
+        }
+        
+        .payment-option-icon {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+        
+        .payment-option-label {
+            font-size: 0.875rem;
+            font-weight: 500;
+        }
     </style>
 </head>
 <body>
@@ -268,6 +359,15 @@
         <span class="cart-badge" id="cartBadge">0</span>
     </div>
     
+    <button class="waiter-fab" id="waiterFab" title="Call Waiter">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+        </svg>
+    </button>
+    
     <div class="modal cart-modal" id="cartModal">
         <div class="modal-content">
             <div class="modal-header">
@@ -288,9 +388,26 @@
                     <span id="totalAmount">0.00 DZD</span>
                 </div>
             </div>
+            <div class="payment-section">
+                <h4 id="paymentMethodLabel">Payment Method</h4>
+                <div class="payment-options">
+                    <div class="payment-option selected" data-method="cash">
+                        <div class="payment-option-icon">💵</div>
+                        <div class="payment-option-label" id="cashLabel">Cash</div>
+                    </div>
+                    <div class="payment-option" data-method="tpe">
+                        <div class="payment-option-icon">💳</div>
+                        <div class="payment-option-label" id="tpeLabel">Card (TPE)</div>
+                    </div>
+                    <div class="payment-option" data-method="online">
+                        <div class="payment-option-icon">📱</div>
+                        <div class="payment-option-label" id="onlineLabel">Pay Now</div>
+                    </div>
+                </div>
+            </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" id="closeCartBtn">Close</button>
-                <button class="btn btn-primary" id="checkoutBtn">Checkout</button>
+                <button class="btn btn-primary" id="checkoutBtn">Place Order</button>
             </div>
         </div>
     </div>
@@ -305,6 +422,7 @@
         let menuItems = [];
         let cart = [];
         let currentCategory = 'all';
+        let selectedPaymentMethod = 'cash';
         
         async function init() {
             try {
@@ -387,12 +505,21 @@
                 return;
             }
             
-            gridEl.innerHTML = filtered.map(item => `
+            gridEl.innerHTML = filtered.map(item => {
+                const prepTime = item.preparation_time_min || 10;
+                return `
                 <div class="menu-item">
                     <div class="menu-item-image">🍽️</div>
                     <div class="menu-item-content">
                         <div class="menu-item-name">${item.name}</div>
                         <div class="menu-item-description">${item.description || ''}</div>
+                        <div class="prep-time-badge">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>${prepTime} min</span>
+                        </div>
                         <div class="menu-item-footer">
                             <div class="menu-item-price">${formatCurrency(item.price)}</div>
                             <button class="btn btn-primary btn-sm" onclick="window.addToCart('${item.id}')">
@@ -401,7 +528,7 @@
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
         }
         
         window.addToCart = function(itemId) {
@@ -492,22 +619,37 @@
             if (cart.length === 0) return;
             
             try {
+                // Calculate total preparation time
+                const totalPrepTime = Math.max(...cart.map(item => item.preparation_time_min || 10));
+                
                 const orderData = {
                     table_id: tableId,
                     items: cart.map(item => ({
                         menu_item_id: item.id,
                         name: item.name,
                         price: item.price,
-                        quantity: item.quantity
+                        quantity: item.quantity,
+                        preparation_time_min: item.preparation_time_min || 10
                     })),
                     total: cart.reduce((sum, item) => sum + (item.price * item.quantity), 0),
                     status: 'pending',
+                    payment_method_choice: selectedPaymentMethod,
+                    payment_status: selectedPaymentMethod === 'online' ? 'paid' : 'unpaid',
                     created_at: new Date().toISOString()
                 };
                 
-                await supabaseClient.createOrder(orderData);
+                const order = await supabaseClient.createOrder(orderData);
                 
-                showSuccess(translations.customer?.orderPlaced || 'Order placed successfully!');
+                // Show success message with estimated time
+                const successMsg = `${translations.customer?.orderPlaced || 'Order placed successfully!'} Estimated time: ${totalPrepTime} minutes.`;
+                showSuccess(successMsg);
+                
+                // If online payment selected, redirect to payment (placeholder)
+                if (selectedPaymentMethod === 'online') {
+                    showInfo('Payment gateway integration coming soon!');
+                    // TODO: Integrate payment gateway (Stripe, PayPal, etc.)
+                }
+                
                 cart = [];
                 updateCart();
                 document.getElementById('cartModal').classList.remove('show');
@@ -515,6 +657,30 @@
             } catch (error) {
                 console.error('Checkout error:', error);
                 showError(null, translations.errors?.saveFailed || 'Failed to place order');
+            }
+        }
+        
+        async function callWaiter() {
+            if (!tableId) {
+                showError(null, translations.errors?.tableNotFound || 'Table not found');
+                return;
+            }
+            
+            try {
+                const requestData = {
+                    table_id: tableId,
+                    request_type: 'assistance',
+                    message: 'Customer requested assistance',
+                    status: 'pending',
+                    created_at: new Date().toISOString()
+                };
+                
+                await supabaseClient.createWaiterRequest(requestData);
+                showSuccess(translations.customer?.waiterCalled || 'Waiter has been notified!');
+                
+            } catch (error) {
+                console.error('Call waiter error:', error);
+                showError(null, 'Failed to call waiter');
             }
         }
         
@@ -532,6 +698,18 @@
             });
             
             document.getElementById('checkoutBtn').addEventListener('click', checkout);
+            
+            // Call waiter button
+            document.getElementById('waiterFab').addEventListener('click', callWaiter);
+            
+            // Payment method selection
+            document.querySelectorAll('.payment-option').forEach(option => {
+                option.addEventListener('click', () => {
+                    document.querySelectorAll('.payment-option').forEach(opt => opt.classList.remove('selected'));
+                    option.classList.add('selected');
+                    selectedPaymentMethod = option.dataset.method;
+                });
+            });
             
             document.querySelectorAll('.language-btn').forEach(btn => {
                 btn.addEventListener('click', () => {
@@ -561,7 +739,12 @@
             document.getElementById('totalLabel').textContent = translations.customer?.total || 'Total';
             document.getElementById('loadingText').textContent = translations.common?.loading || 'Loading...';
             document.getElementById('closeCartBtn').textContent = translations.common?.close || 'Close';
-            document.getElementById('checkoutBtn').textContent = translations.customer?.checkout || 'Checkout';
+            document.getElementById('checkoutBtn').textContent = translations.customer?.placeOrder || 'Place Order';
+            document.getElementById('paymentMethodLabel').textContent = translations.customer?.paymentMethod || 'Payment Method';
+            document.getElementById('cashLabel').textContent = translations.customer?.cash || 'Cash';
+            document.getElementById('tpeLabel').textContent = translations.customer?.cardTPE || 'Card (TPE)';
+            document.getElementById('onlineLabel').textContent = translations.customer?.payNow || 'Pay Now';
+            document.getElementById('waiterFab').title = translations.customer?.callWaiter || 'Call Waiter';
             document.title = translations.customer?.title || 'Menu';
         }
         

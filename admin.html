@@ -46,7 +46,10 @@
         <div class="tab-content active" id="tablesContent">
             <div class="action-bar">
                 <h2 id="tablesTitle">Tables</h2>
-                <button class="btn btn-primary" id="addTableBtn">+ Add Table</button>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button class="btn btn-success" id="tableLayoutBtn"><span data-icon="map"></span> Visual Layout Editor</button>
+                    <button class="btn btn-primary" id="addTableBtn"><span data-icon="plus"></span> Add Table</button>
+                </div>
             </div>
             <div class="table-container">
                 <table class="table" id="tablesTable">
@@ -59,7 +62,7 @@
         <div class="tab-content" id="categoriesContent">
             <div class="action-bar">
                 <h2>Categories</h2>
-                <button class="btn btn-primary" id="addCategoryBtn">+ Add Category</button>
+                <button class="btn btn-primary" id="addCategoryBtn"><span data-icon="plus"></span> Add Category</button>
             </div>
             <div class="table-container">
                 <table class="table" id="categoriesTable">
@@ -72,7 +75,7 @@
         <div class="tab-content" id="menuContent">
             <div class="action-bar">
                 <h2 id="menuTitle">Menu Items</h2>
-                <button class="btn btn-primary" id="addMenuBtn">+ Add Item</button>
+                <button class="btn btn-primary" id="addMenuBtn"><span data-icon="plus"></span> Add Item</button>
             </div>
             <div class="table-container">
                 <table class="table" id="menuTable">
@@ -86,8 +89,8 @@
             <h2 id="ordersTitle">Recent Orders</h2>
             <div class="table-container">
                 <table class="table" id="ordersTable">
-                    <thead><tr><th>Order #</th><th>Table</th><th>Items</th><th>Total</th><th>Status</th><th>Time</th></tr></thead>
-                    <tbody id="ordersBody"><tr><td colspan="6"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
+                    <thead><tr><th>Order #</th><th>Table</th><th>Items</th><th>Total</th><th>Payment</th><th>Status</th><th>Time</th></tr></thead>
+                    <tbody id="ordersBody"><tr><td colspan="7"><div class="loading-spinner"><div class="spinner"></div></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -95,7 +98,7 @@
         <div class="tab-content" id="employeesContent">
             <div class="action-bar">
                 <h2>Employees</h2>
-                <button class="btn btn-primary" id="addEmployeeBtn">+ Add Employee</button>
+                <button class="btn btn-primary" id="addEmployeeBtn"><span data-icon="plus"></span> Add Employee</button>
             </div>
             <div class="table-container">
                 <table class="table" id="employeesTable">
@@ -201,6 +204,7 @@
     </div>
     
     <script type="module">
+        import { icons } from '/assets/js/icons.js';
         import { supabaseClient } from '/assets/js/supabase-client.js';
         import { loadLanguage, getBrowserLanguage, setPageDirection, getUrlParameter, setUrlParameter, formatCurrency, formatDateTime, generateQRCodeUrl, showSuccess, showError } from '/assets/js/utils.js';
         
@@ -209,7 +213,19 @@
         let currentTab = 'tables';
         let editingId = null;
         
+        // Initialize icons in HTML
+        function initIcons() {
+            document.querySelectorAll('[data-icon]').forEach(el => {
+                const iconName = el.getAttribute('data-icon');
+                if (icons[iconName]) {
+                    el.innerHTML = icons[iconName];
+                }
+            });
+        }
+        
         async function init() {
+            // Initialize icons first
+            initIcons();
             try {
                 translations = await loadLanguage(currentLang);
                 setPageDirection(currentLang);
@@ -309,7 +325,7 @@
                 const orders = await supabaseClient.getOrders({});
                 const tbody = document.getElementById('ordersBody');
                 if (orders.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 2rem;">No orders found</td></tr>';
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align: center; padding: 2rem;">No orders found</td></tr>';
                     return;
                 }
                 tbody.innerHTML = orders.slice(0, 20).map(o => `
@@ -318,6 +334,7 @@
                         <td>${o.tables?.table_number || 'N/A'}</td>
                         <td>${(o.items || []).length} items</td>
                         <td>${formatCurrency(o.total)}</td>
+                        <td>${getPaymentMethodBadge(o.payment_method_choice)}</td>
                         <td><span class="badge badge-info">${o.status}</span></td>
                         <td>${formatDateTime(o.created_at)}</td>
                     </tr>
@@ -325,6 +342,18 @@
             } catch (error) {
                 console.error('Load orders error:', error);
             }
+        }
+        
+        function getPaymentMethodBadge(paymentMethod) {
+            const methods = {
+                cash: { icon: icons.cash, label: 'Cash', color: '#4CAF50' },
+                tpe: { icon: icons.card, label: 'Card', color: '#2196F3' },
+                online: { icon: icons.online, label: 'Online', color: '#9C27B0' }
+            };
+            
+            const method = methods[paymentMethod] || methods.cash;
+            
+            return `<span style="color: ${method.color}; font-weight: 600;">${method.icon} ${method.label}</span>`;
         }
         
         window.deleteTable = async function(id) {
@@ -939,6 +968,10 @@ Answer:`;
             document.getElementById('addTableBtn').addEventListener('click', () => {
                 editingId = null;
                 document.getElementById('tableModal').classList.add('show');
+            });
+            
+            document.getElementById('tableLayoutBtn').addEventListener('click', () => {
+                window.location.href = '/table-layout.html';
             });
             
             document.getElementById('addMenuBtn').addEventListener('click', () => {
